@@ -7,16 +7,16 @@
   "scripts": {
     "start": "node index.mjs",
     "develop": "forever --watch index.mjs",
-    "submit": "gcloud builds submit --tag eu.gcr.io/endpointservice/serversidecells --project endpointservice",
+    "submit": "gcloud builds submit --tag eu.gcr.io/endpointservice/serversidecells:$TAG --project endpointservice",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config=jest.config.js"
   },
-  "author": "",
+  "author": "Tom Larkworthy",
   "license": "PolyForm Perimeter License 1.0.0",
   "dependencies": {
     "@google-cloud/logging": "^9.0.0",
     "@google-cloud/secret-manager": "^3.2.2",
     "@observablehq/runtime": "^4.8.0",
-    "@tomlarkworthy/rate-estimation-min": "https://api.observablehq.com/@tomlarkworthy/rate-estimation-min.tgz?v=3",
+    "@tomlarkworthy/rate-estimation-min": "https://api.observablehq.com/@tomlarkworthy/rate-estimation-min@49.tgz?v=3",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",

@@ -25,24 +25,41 @@ import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
 
 
 let browsers = {};
+
 async function newPage(shard) {
     if (browsers[shard] === undefined) {
         browsers[shard] = await puppeteer.launch({ 
             args: [
-                '--no-sandbox', // Not necissary if running with --cap-add=SYS_ADMIN
-                '--disable-gpu',
-                '--no-zygote',
                 `--disk-cache-dir=/tmp/${shard}`,
                 `--media-cache-dir=/tmp/${shard}`,
                 `--media-cache-size=1000000`, // 1MB
                 `--disk-cache-size=1000000`,
+                '--no-sandbox', // Not necissary if running with --cap-add=SYS_ADMIN
+                '--no-zygote',
+                '--disable-gpu',
+                '--mute-audio',
                 '--disable-dev-shm-usage',
                 '--disable-web-security', // Turn off CORS
                 '--user-agent=observablehq.com/@tomlarkworthy/serverside-cells'
             ]
         })
+
     }
     const page = await browsers[shard].newPage();
+    
+    await page.setRequestInterception(true)
+    
+    page.on('request', interceptedRequest => {
+        const hostname = new URL(interceptedRequest.url()).hostname;
+        if (hostname.endsWith(".internal") || // Prevent access to e.g. Metadata server
+            hostname === "127.0.0.1" ||
+            hostname === "0.0.0.0") {
+            interceptedRequest.abort()
+        } else {
+            interceptedRequest.continue()
+        }
+    })
+    
     return page;
 }
 
