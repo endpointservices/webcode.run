@@ -5,14 +5,13 @@ admin.initializeApp();
 import {default as bodyParser} from 'body-parser';
 import {default as puppeteer} from 'puppeteer';
 import {SecretManagerServiceClient} from '@google-cloud/secret-manager';
-import {Logging} from '@google-cloud/logging';
 import cors from 'cors';
 import * as routes from './routes.mjs';
+import {Logger} from './logging.mjs';
 
 const secretsClient = new SecretManagerServiceClient({
     projectId: "endpointservice"
 });
-const logging = new Logging({projectId: "endpointservice"});
 
 export const app = express();
 app.use(cors({
@@ -59,7 +58,7 @@ async function newPage(shard) {
             interceptedRequest.continue()
         }
     })
-    
+
     return page;
 }
 
@@ -105,30 +104,19 @@ app.all(routes.pattern, async (req, res) => {
     // Default no cache in CDN
     res.header('Cache-Control', 'no-store');
 
-    let cloudlog = null;
-    let backlog = [];
-    const logResource = {
-        type: 'global',
-    };
-    async function log(msg) {
-        if (cloudlog === null) {
-            backlog.push(msg);
-        } else {
-            const entry = cloudlog.entry({resource:logResource}, msg);
-            return cloudlog.write(entry);
-        }
-    }
+    const logger = new Logger();
+
+    const t_start = Date.now();
 
     try {
-        log(`t_start: ${process.hrtime()}`);
 
         page = await newPage(shard);
 
         // Wire up logging (TODO pipe to user log files too)
-        page.on('console', message => log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`))
-            .on('pageerror', ({ message }) => log(message))
-        //    .on('response', response => log(`${response.status()} ${response.url()}`))
-            .on('requestfailed', request => log(`${request.failure().errorText} ${request.url()}`))
+        page.on('console', message => logger.log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`))
+            .on('pageerror', ({ message }) => logger.log(message))
+        //    .on('response', response => logger.log(`${response.status()} ${response.url()}`))
+            .on('requestfailed', request => logger.log(`${request.failure().errorText} ${request.url()}`))
 
         console.log(`Fetching: ${notebookURL}`);
         const pageResult = await page.goto(notebookURL, { waitUntil: 'domcontentloaded' })
@@ -156,13 +144,14 @@ app.all(routes.pattern, async (req, res) => {
         // e.g. https://tomlarkworthy.static.observableusercontent.com/worker/embedworker.7fea46af439a70e4d3d6c96e0dfa09953c430187dd07bc9aa6b9050a6691721a.html?cell=buggy_rem
         const namespace = iframe.url().match(/^https:\/\/([^.]*)/)[1];
 
-        console.log(`Namespace: ${namespace}`);
+        logger.initialize({
+            project_id: process.env.GOOGLE_CLOUD_PROJECT,
+            location: undefined,
+            namespace,
+            job: notebookURL,
+            task_id: Math.random().toString(36).substr(2, 9)
+        });
 
-        // Write into namespace log
-        cloudlog = logging.log(namespace);
-        // clear backlog
-        cloudlog.write(backlog.map(msg => cloudlog.entry(logResource, msg)));
-        backlog.length = 0;
 
         // SECURITY: Now we ensure all the secrets resolve and they are keyed by the domain being executed
         Object.keys(secrets).map(key => {
@@ -171,10 +160,11 @@ app.all(routes.pattern, async (req, res) => {
 
         // Resolve all the promises
         const context = {
+            serverless: true,
             namespace,
             secrets: await resolveObject(secrets) // Resolve all outstanding secret fetches
         }
-        console.log("wait function")
+
         await iframe.waitForFunction(
             (deploy) => window["deployments"] && window["deployments"][deploy],
             {
@@ -191,35 +181,51 @@ app.all(routes.pattern, async (req, res) => {
             headers: req.headers,
             ip: req.ip,
         }
-        console.log(`req: ${JSON.stringify({...cellReq/*, headers: undefined*/})}`);
-
+        
         const result = await iframe.evaluate(
             (req, deploy, context) => window["deployments"][deploy](req, context),
             cellReq, deploy, context);
 
-        console.log(`Evaluation: ${JSON.stringify(result)}`);
         await page.close();
-        await log(`t_end: ${process.hrtime()}`);
+
+        const millis = Date.now() - t_start;
+
         
         for (const [header, value] of Object.entries(result.headers || {})) {
             res.header(header, value);
         }
-
         result.status ? res.status(result.status) : null;
         result.json ? res.json(result.json) : null;
         result.send ? res.send(result.send) : null;
         result.end ? res.end() : null;
+
+        logger.log({
+            url: req.url,
+            method: req.method,
+            status: 200 || result.status,
+            duration: millis
+        });
+
     } catch (err) {
+        if (page) await page.close();
+        const millis = Date.now() - t_start;
+        let status;
         if (err.message.startsWith("waiting for function failed")) {
             err.message = `Deployment '${deploy}' not found, did you remember to publish your notebook?`
-            await log(`t_end: ${process.hrtime()}`);
-            res.status(404).send(err.message);
+            status = 404;
         } else {
             console.log("Error: ", err.message);
-            if (page) await page.close();
-            await log(`t_end: ${process.hrtime()}`);
-            res.status(500).send(err.message);
+            status = 500;
         }
+
+        logger.log({
+            url: req.url,
+            method: req.method,
+            status,
+            duration: millis
+        });
+
+        res.status(status).send(err.message);
     }
 });
 
