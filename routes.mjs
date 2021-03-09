@@ -16,6 +16,7 @@ export function decode(req) {
         shard: `${req.params.namespace}/${req.params.notebook}`,
         notebookURL: notebookURL,
         userURL: userURL,
+        notebook: req.params.notebook,
         secretKeys: secretKeys,
         deploy: req.params.deploy || 'default',
     };

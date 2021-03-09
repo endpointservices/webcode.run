@@ -70,13 +70,14 @@ app.all(routes.pattern, async (req, res) => {
         console.log("Burstable limit hit");
         res.header('Retry-After', '2')
         // res.status(503).send("Burstable rate limit of 1 request per exceeded");
-        res.status(429).send("Burstable rate limit of 1 request per exceeded");
+        res.status(429).send("Burstable rate limit of 1 request per second exceeded");
         return;
     }
     
     const {
         shard,
         notebookURL,
+        notebook,
         userURL,
         secretKeys,
         deploy,
@@ -148,6 +149,7 @@ app.all(routes.pattern, async (req, res) => {
             project_id: process.env.GOOGLE_CLOUD_PROJECT,
             location: undefined,
             namespace,
+            notebook: notebook,
             job: notebookURL,
             task_id: Math.random().toString(36).substr(2, 9)
         });

@@ -19,6 +19,7 @@ test('Route patterns default', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/",
@@ -32,6 +33,7 @@ test('Route patterns simple', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/",
@@ -45,6 +47,7 @@ test('Route patterns simple with secrets', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": ["a","b"],
         "userURL": "/" ,
@@ -58,6 +61,7 @@ test('Route patterns simple with user URL', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/yoyoyo" ,
@@ -71,6 +75,7 @@ test('Route patterns simple with secrets with user URL', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": ["e"],
         "userURL": "/yoyoyo",
@@ -84,6 +89,7 @@ test('Route patterns simple with cell', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": [],
         "userURL": "/",
@@ -97,6 +103,7 @@ test('Route patterns simple with cell and user URL', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": [],
         "userURL": "/yoyoyo",
@@ -111,6 +118,7 @@ test('Route patterns simple with secrets with cell', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": ["a"],
         "userURL": "/",
@@ -124,6 +132,7 @@ test('Route patterns simple with secrets with cell and user URL', () => {
         params: p
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": ["c", "d"],
         "userURL": "/yoyoyo",
