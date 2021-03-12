@@ -164,8 +164,9 @@ app.all(routes.pattern, async (req, res) => {
         const context = {
             serverless: true,
             namespace,
+            notebook: notebook,
             secrets: await resolveObject(secrets) // Resolve all outstanding secret fetches
-        }
+        };
 
         await iframe.waitForFunction(
             (deploy) => window["deployments"] && window["deployments"][deploy],
@@ -188,17 +189,24 @@ app.all(routes.pattern, async (req, res) => {
             (req, deploy, context) => window["deployments"][deploy](req, context),
             cellReq, deploy, context);
 
-        await page.close();
+        await page.close(); page = undefined;
 
         const millis = Date.now() - t_start;
-
         
         for (const [header, value] of Object.entries(result.headers || {})) {
             res.header(header, value);
         }
         result.status ? res.status(result.status) : null;
         result.json ? res.json(result.json) : null;
-        result.send ? res.send(result.send) : null;
+
+        if (result.send) {
+            if (result.send.ARuRQygChDsaTvPRztEb === "bufferBase64") {
+                console.log("bufferBase64")
+                res.send(Buffer.from(result.send.value, 'base64'))
+            } else {
+                res.send(result.send)
+            }
+        }
         result.end ? res.end() : null;
 
         logger.log({
