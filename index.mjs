@@ -17,7 +17,7 @@ export const app = express();
 app.use(cors({
     origin: true // Use origin.header
 }));
-app.use(bodyParser.raw({type: '*/*'})); // This means we buffer the body, really we should move towards streaming
+app.use(bodyParser.raw({type: '*/*', limit: '2mb'})); // This means we buffer the body, really we should move towards streaming
 
 // RATE LIMITERS
 import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
