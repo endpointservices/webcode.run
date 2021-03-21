@@ -1,5 +1,5 @@
 
-export const pattern = '(/notebooks/:namespace/:notebook)(/deployments/:deploy)?(/secrets/:secretids)?(/cells/:cellids)?(/:user(*))?';
+export const pattern = '(/regions/:region)?(/notebooks/:namespace/:notebook)(/deployments/:deploy)?(/secrets/:secretids)?(/cells/:cellids)?(/:user(*))?';
 export function decode(req) {
     let query = ''
     let secretKeys = req.params.secretids ? (req.params.secretids).split(",").map(decodeURIComponent): [];

@@ -27,6 +27,21 @@ test('Route patterns default', () => {
     })
 });
 
+
+test('Route patterns regions', () => {
+    const p = params("/regions/asia-east1/notebooks/@tomlarkworthy/echo-server")
+    expect(routes.decode({
+        params: p
+    })).toEqual({
+        "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "secretKeys": [],
+        "userURL": "/",
+        "deploy": "default"
+    })
+});
+
 test('Route patterns simple', () => {
     const p = params("/notebooks/@tomlarkworthy/echo-server/deployments/echo")
     expect(routes.decode({
