@@ -23,11 +23,11 @@ app.use(bodyParser.raw({type: '*/*', limit: '2mb'})); // This means we buffer th
 import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
 
 
-let browsers = {};
+let browsers = {}; // Cache of promises
 
 async function newPage(shard) {
     if (browsers[shard] === undefined) {
-        browsers[shard] = await puppeteer.launch({ 
+        browsers[shard] = puppeteer.launch({ 
             args: [
                 `--disk-cache-dir=/tmp/${shard}`,
                 `--media-cache-dir=/tmp/${shard}`,
@@ -44,7 +44,7 @@ async function newPage(shard) {
         })
 
     }
-    const page = await browsers[shard].newPage();
+    const page = await (await browsers[shard]).newPage();
     
     await page.setRequestInterception(true)
     
