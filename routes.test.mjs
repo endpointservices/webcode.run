@@ -23,7 +23,8 @@ test('Route patterns default', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/",
-        "deploy": "default"
+        "deploy": "default",
+        "hasMods": false
     })
 });
 
@@ -38,7 +39,8 @@ test('Route patterns regions', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/",
-        "deploy": "default"
+        "deploy": "default",
+        "hasMods": false
     })
 });
 
@@ -52,7 +54,42 @@ test('Route patterns simple', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/",
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
+    })
+});
+
+
+test('Route patterns mods', () => {
+    const p = params("/notebooks/@tomlarkworthy/echo-server/deploys/echo/mods/ET")
+    expect(routes.decode({
+        params: p
+    })).toEqual({
+        "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "secretKeys": [],
+        "userURL": "/",
+        "deploy": "echo",
+        "isTerminal": true,
+        "isExternal": true,
+        "hasMods": true,
+    })
+});
+
+
+test('Route patterns deployments to deploy', () => {
+    const p = params("/notebooks/@tomlarkworthy/echo-server/deploys/echo")
+    expect(routes.decode({
+        params: p
+    })).toEqual({
+        "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "secretKeys": [],
+        "userURL": "/",
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -66,7 +103,8 @@ test('Route patterns simple with secrets', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": ["a","b"],
         "userURL": "/" ,
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -80,7 +118,8 @@ test('Route patterns simple with user URL', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
         "userURL": "/yoyoyo" ,
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -94,7 +133,8 @@ test('Route patterns simple with secrets with user URL', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": ["e"],
         "userURL": "/yoyoyo",
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -108,7 +148,8 @@ test('Route patterns simple with cell', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": [],
         "userURL": "/",
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -122,7 +163,8 @@ test('Route patterns simple with cell and user URL', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": [],
         "userURL": "/yoyoyo",
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -137,7 +179,8 @@ test('Route patterns simple with secrets with cell', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": ["a"],
         "userURL": "/",
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });
 
@@ -151,6 +194,7 @@ test('Route patterns simple with secrets with cell and user URL', () => {
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": ["c", "d"],
         "userURL": "/yoyoyo",
-        "deploy": "echo"
+        "deploy": "echo",
+        "hasMods": false
     })
 });

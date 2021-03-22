@@ -1,5 +1,5 @@
-
-export const pattern = '(/regions/:region)?(/notebooks/:namespace/:notebook)(/deployments/:deploy)?(/secrets/:secretids)?(/cells/:cellids)?(/:user(*))?';
+// Collections, must be plural (http://apistylebook.com/design/guidelines/google-api-design-guide)
+export const pattern = '(/regions/:region)?(/notebooks/:namespace/:notebook)(/deployments/:deploy|/deploys/:deploy)?(/mods/:mods)?(/secrets/:secretids)?(/cells/:cellids)?(/:user(*))?';
 export function decode(req) {
     let query = ''
     let secretKeys = req.params.secretids ? (req.params.secretids).split(",").map(decodeURIComponent): [];
@@ -19,6 +19,8 @@ export function decode(req) {
         notebook: req.params.notebook,
         secretKeys: secretKeys,
         deploy: req.params.deploy || 'default',
+        hasMods: req.params.mods ? true : false,
+        isExternal: req.params.mods ? req.params.mods.includes("E") : undefined, // Cannot be called by other serverless cels
+        isTerminal: req.params.mods ? req.params.mods.includes("T") : undefined  // Cannot call other serverless cells 
     };
-
 }

@@ -7,6 +7,7 @@ import {default as puppeteer} from 'puppeteer';
 import {SecretManagerServiceClient} from '@google-cloud/secret-manager';
 import cors from 'cors';
 import * as routes from './routes.mjs';
+import * as useragent from './useragent.mjs';
 import {Logger} from './logging.mjs';
 
 const secretsClient = new SecretManagerServiceClient({
@@ -39,7 +40,7 @@ async function newPage(shard) {
                 '--mute-audio',
                 '--disable-dev-shm-usage',
                 '--disable-web-security', // Turn off CORS
-                '--user-agent=observablehq.com/@tomlarkworthy/serverside-cells'
+                `--user-agent=${useragent.base}` // We set it on a per page but incase we forget we set it here too
             ]
         })
 
@@ -70,8 +71,7 @@ app.all(routes.pattern, async (req, res) => {
         console.log("Burstable limit hit");
         res.header('Retry-After', '2')
         // res.status(503).send("Burstable rate limit of 1 request per exceeded");
-        res.status(429).send("Burstable rate limit of 1 request per second exceeded");
-        return;
+        return res.status(429).send("Burstable rate limit of 1 request per second exceeded");
     }
     
     const {
@@ -81,7 +81,27 @@ app.all(routes.pattern, async (req, res) => {
         userURL,
         secretKeys,
         deploy,
+        hasMods,
+        isExternal,
+        isTerminal,
     } = routes.decode(req);
+
+
+    const {
+        isExternalUA,
+        isTerminalUA,
+    } = useragent.decode(req.get('user-agent'));
+
+    // Loop prevention
+    if (hasMods) {
+        if (!isExternalUA && isExternal) {
+            return res.status(403).send("External Serverless Cells cannot be called by other Serverless Cells");
+        } else if (isTerminalUA) {
+            return res.status(403).send("Terminal Serverless Cells cannot call other Serverless Cells");
+        } else if (isTerminal) {
+            // Terminal functions can be called by anyone, but then they cannot propogate
+        }
+    }
 
 
     // Start loading secrets ASAP in the background
@@ -112,6 +132,11 @@ app.all(routes.pattern, async (req, res) => {
     try {
 
         page = await newPage(shard);
+        
+        await page.setUserAgent(useragent.encode({
+            terminal: isTerminal
+        }));
+        
 
         // Wire up logging (TODO pipe to user log files too)
         page.on('console', message => logger.log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`))
