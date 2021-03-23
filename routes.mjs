@@ -20,7 +20,8 @@ export function decode(req) {
         secretKeys: secretKeys,
         deploy: req.params.deploy || 'default',
         hasMods: req.params.mods ? true : false,
-        isExternal: req.params.mods ? req.params.mods.includes("E") : undefined, // Cannot be called by other serverless cels
-        isTerminal: req.params.mods ? req.params.mods.includes("T") : undefined  // Cannot call other serverless cells 
+        isExternal: req.params.mods ? req.params.mods.includes("X") : undefined,  // Cannot be called by other serverless cels
+        isTerminal: req.params.mods ? req.params.mods.includes("T") : undefined,  // Cannot call other serverless cells 
+        isOrchestrator: req.params.mods ? req.params.mods.includes("O") : undefined
     };
 }

@@ -5,12 +5,14 @@ export function decode(useragent) {
     const mods = match?.groups['mods']
     return ({
         isExternalUA: !match,
+        isOrchestratorUA: (mods && mods.includes('O')) || false,
         isTerminalUA: (mods && mods.includes('T')) || false
     });
 }
 
 export function encode({
-    terminal = false
+    terminal = false,
+    orchestrator = false,
 } = {}) {
-    return `observablehq.com/@endpointservices/serverless-cells ${terminal ? 'T':''}`
+    return `observablehq.com/@endpointservices/serverless-cells ${terminal ? 'T':''}${orchestrator ? 'O':''}`
 }

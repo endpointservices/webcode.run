@@ -64,15 +64,6 @@ async function newPage(shard) {
 }
 
 app.all(routes.pattern, async (req, res) => {
-    try {
-        checkRate(req.ip,  BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
-        checkRate(req.url, BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
-    } catch (err) {
-        console.log("Burstable limit hit");
-        res.header('Retry-After', '2')
-        // res.status(503).send("Burstable rate limit of 1 request per exceeded");
-        return res.status(429).send("Burstable rate limit of 1 request per second exceeded");
-    }
     
     const {
         shard,
@@ -84,23 +75,44 @@ app.all(routes.pattern, async (req, res) => {
         hasMods,
         isExternal,
         isTerminal,
+        isOrchestrator,
     } = routes.decode(req);
 
 
     const {
         isExternalUA,
         isTerminalUA,
+        isOrchestratorUA,
     } = useragent.decode(req.get('user-agent'));
 
     // Loop prevention
     if (hasMods) {
-        if (!isExternalUA && isExternal) {
+        if (isOrchestratorUA && !isOrchestrator) {
+            // Orchestrator cells can call other cells
+        } else if (isOrchestratorUA && isOrchestrator) {
+            return res.status(403).send("Orchestrator cells cannot call other orchestrator cells");
+        } else if (!isExternalUA && isExternal) {
             return res.status(403).send("External Serverless Cells cannot be called by other Serverless Cells");
         } else if (isTerminalUA) {
             return res.status(403).send("Terminal Serverless Cells cannot call other Serverless Cells");
         } else if (isTerminal) {
-            // Terminal functions can be called by anyone, but then they cannot propogate
+            // Terminal cells can be called by anyone, but then they cannot propogate
+        } else if (isExternalUA && (isExternal || isOrchestrator)) {
+            // External Serverless cells can be called by external UAs
+        } else {
+            const message = `Unexpected combination ${req.get('user-agent')} ${isTerminal} ${isOrchestrator} ${isExternal}`
+            return res.status(403).send(message);
         }
+    }
+
+    try {
+        checkRate(req.ip,  BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
+        checkRate(req.url, BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
+    } catch (err) {
+        console.log("Burstable limit hit");
+        res.header('Retry-After', '2')
+        // res.status(503).send("Burstable rate limit of 1 request per exceeded");
+        return res.status(429).send("Burstable rate limit of 1 request per second exceeded");
     }
 
 
@@ -132,9 +144,16 @@ app.all(routes.pattern, async (req, res) => {
     try {
 
         page = await newPage(shard);
-        
+        await page.evaluateOnNewDocument((notebook) => {
+            window["@endpointservices.context"] = {
+                serverless: true,
+                notebook: notebook,
+                secrets: {}
+            };;
+        }, notebook);
         await page.setUserAgent(useragent.encode({
-            terminal: isTerminal
+            terminal: isTerminal,
+            orchestrator: isOrchestrator
         }));
         
 

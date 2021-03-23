@@ -6,6 +6,7 @@ test('Parse mods', () => {
     )).toEqual({
         "isExternalUA": false,
         "isTerminalUA": true,
+        "isOrchestratorUA": false,
     })
 });
 
@@ -16,6 +17,7 @@ test('Default mods', () => {
     )).toEqual({
         "isExternalUA": false,
         "isTerminalUA": false,
+        "isOrchestratorUA": false,
     })
 });
 
@@ -26,15 +28,18 @@ test('External UA', () => {
     )).toEqual({
         "isExternalUA": true,
         "isTerminalUA": false,
+        "isOrchestratorUA": false,
     })
 });
 
 
 test('Encode UA', () => {
     expect(useragent.decode(useragent.encode({
-        terminal: true
+        terminal: true,
+        orchistrator: true
     }))).toEqual({
         "isExternalUA": false,
         "isTerminalUA": true,
+        "isOrchestratorUA": true,
     })
 });

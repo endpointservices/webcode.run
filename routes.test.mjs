@@ -61,7 +61,7 @@ test('Route patterns simple', () => {
 
 
 test('Route patterns mods', () => {
-    const p = params("/notebooks/@tomlarkworthy/echo-server/deploys/echo/mods/ET")
+    const p = params("/notebooks/@tomlarkworthy/echo-server/deploys/echo/mods/XT")
     expect(routes.decode({
         params: p
     })).toEqual({
@@ -73,6 +73,7 @@ test('Route patterns mods', () => {
         "deploy": "echo",
         "isTerminal": true,
         "isExternal": true,
+        "isOrchestrator": false,
         "hasMods": true,
     })
 });
