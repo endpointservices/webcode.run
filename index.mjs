@@ -144,12 +144,18 @@ app.all(routes.pattern, async (req, res) => {
     try {
 
         page = await newPage(shard);
+
+        // Tidy page on cancelled request
+        req.on('close', async function (err) {
+            if (page) await page.close(); page = undefined;
+        });
+
         await page.evaluateOnNewDocument((notebook) => {
             window["@endpointservices.context"] = {
                 serverless: true,
                 notebook: notebook,
                 secrets: {}
-            };;
+            };
         }, notebook);
         await page.setUserAgent(useragent.encode({
             terminal: isTerminal,
@@ -261,7 +267,7 @@ app.all(routes.pattern, async (req, res) => {
         });
 
     } catch (err) {
-        if (page) await page.close();
+        if (page) await page.close(); page = undefined;
         const millis = Date.now() - t_start;
         let status;
         if (err.message.startsWith("waiting for function failed")) {
@@ -278,7 +284,6 @@ app.all(routes.pattern, async (req, res) => {
             status,
             duration: millis
         });
-
         res.status(status).send(err.message);
     }
 });

@@ -36,7 +36,7 @@ test('External UA', () => {
 test('Encode UA', () => {
     expect(useragent.decode(useragent.encode({
         terminal: true,
-        orchistrator: true
+        orchestrator: true
     }))).toEqual({
         "isExternalUA": false,
         "isTerminalUA": true,
