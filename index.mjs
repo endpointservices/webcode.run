@@ -56,6 +56,7 @@ async function newPage(shard) {
             hostname === "0.0.0.0") {
             interceptedRequest.abort()
         } else {
+            // Note we can't mutate fetch requests until https://github.com/puppeteer/puppeteer/issues/2781
             interceptedRequest.continue()
         }
     })
