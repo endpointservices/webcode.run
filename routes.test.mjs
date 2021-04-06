@@ -79,6 +79,25 @@ test('Route patterns mods', () => {
 });
 
 
+
+test('Route patterns mods, metadata first', () => {
+    const p = params("/mods/XT/notebooks/@tomlarkworthy/echo-server/deploys/echo")
+    expect(routes.decode({
+        params: p
+    })).toEqual({
+        "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "secretKeys": [],
+        "userURL": "/",
+        "deploy": "echo",
+        "isTerminal": true,
+        "isExternal": true,
+        "isOrchestrator": false,
+        "hasMods": true,
+    })
+});
+
 test('Route patterns deployments to deploy', () => {
     const p = params("/notebooks/@tomlarkworthy/echo-server/deploys/echo")
     expect(routes.decode({
@@ -187,6 +206,23 @@ test('Route patterns simple with secrets with cell', () => {
 
 test('Route patterns simple with secrets with cell and user URL', () => {
     const p = params("/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/c,d/cells/cell/yoyoyo")
+    expect(routes.decode({
+        params: p
+    })).toEqual({
+        "shard": "@tomlarkworthy/echo-server",
+        "notebook": "echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
+        "secretKeys": ["c", "d"],
+        "userURL": "/yoyoyo",
+        "deploy": "echo",
+        "hasMods": false
+    })
+});
+
+
+
+test('Route patterns simple with secrets with cell and user URL, meta data first', () => {
+    const p = params("/secrets/c,d/cells/cell/notebooks/@tomlarkworthy/echo-server/deployments/echo/yoyoyo")
     expect(routes.decode({
         params: p
     })).toEqual({

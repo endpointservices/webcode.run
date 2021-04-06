@@ -27,8 +27,10 @@ import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
 let browsers = {}; // Cache of promises
 
 async function newPage(shard) {
+    const localmode = process.env.LOCAL || false;
     if (browsers[shard] === undefined) {
         browsers[shard] = puppeteer.launch({ 
+            devtools: localmode,
             args: [
                 `--disk-cache-dir=/tmp/${shard}`,
                 `--media-cache-dir=/tmp/${shard}`,
@@ -40,6 +42,7 @@ async function newPage(shard) {
                 '--mute-audio',
                 '--disable-dev-shm-usage',
                 '--disable-web-security', // Turn off CORS
+                localmode ? '--disable-features=site-per-process': '', // Helps keep iframe detection working https://github.com/puppeteer/puppeteer/issues/5123#issuecomment-559158303 when using devtools
                 `--user-agent=${useragent.base}` // We set it on a per page but incase we forget we set it here too
             ]
         })
@@ -184,7 +187,10 @@ app.all(routes.pattern, async (req, res) => {
             return promise;
             
             function checkFrame() {
-                const frame = page.frames().find(iframe => iframe.url().includes('observableusercontent'));
+                const frame = page.frames().find(iframe => {
+                    // console.log("iframe.url()" + iframe.url())
+                    return iframe.url().includes('observableusercontent')
+                });
                 if (frame)
                     fulfill(frame);
                 else
@@ -207,6 +213,7 @@ app.all(routes.pattern, async (req, res) => {
 
 
         // SECURITY: Now we ensure all the secrets resolve and they are keyed by the domain being executed
+        
         Object.keys(secrets).map(key => {
             if (!key.startsWith(namespace)) throw new Error(`Notebooks by ${namespace} cannot access ${key}`)
         });
@@ -235,7 +242,7 @@ app.all(routes.pattern, async (req, res) => {
             headers: req.headers,
             ip: req.ip,
         }
-        
+
         const result = await iframe.evaluate(
             (req, deploy, context) => window["deployments"][deploy](req, context),
             cellReq, deploy, context);

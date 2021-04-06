@@ -1,5 +1,5 @@
 // Collections, must be plural (http://apistylebook.com/design/guidelines/google-api-design-guide)
-export const pattern = '(/regions/:region)?(/notebooks/:namespace/:notebook)(/deployments/:deploy|/deploys/:deploy)?(/mods/:mods)?(/secrets/:secretids)?(/cells/:cellids)?(/:user(*))?';
+export const pattern = '(/regions/:region)?(/mods/:mods)?(/secrets/:secretids)?(/cells/:cellids)?(/notebooks/:namespace/:notebook)(/deployments/:deploy|/deploys/:deploy)?(/mods/:mods)?(/secrets/:secretids)?(/cells/:cellids)?(/:user(*))?';
 export function decode(req) {
     let query = ''
     let secretKeys = req.params.secretids ? (req.params.secretids).split(",").map(decodeURIComponent): [];
