@@ -129,14 +129,16 @@ test('Route patterns simple with secrets', () => {
 });
 
 test('Route patterns simple with user URL', () => {
-    const p = params("/notebooks/@tomlarkworthy/echo-server/deployments/echo/yoyoyo")
+    const url = '/notebooks/@tomlarkworthy/echo-server/deployments/echo/yoyoyo'
     expect(routes.decode({
-        params: p
+        params: params(url),
+        url: url
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
         "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": [],
+        "baseURL": "/notebooks/@tomlarkworthy/echo-server/deployments/echo" ,
         "userURL": "/yoyoyo" ,
         "deploy": "echo",
         "hasMods": false
@@ -144,14 +146,16 @@ test('Route patterns simple with user URL', () => {
 });
 
 test('Route patterns simple with secrets with user URL', () => {
-    const p = params("/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/e/yoyoyo")
+    const url = "/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/e/yoyoyo"
     expect(routes.decode({
-        params: p
+        params: params(url),
+        url: url
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
         "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "secretKeys": ["e"],
+        "baseURL": "/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/e" ,
         "userURL": "/yoyoyo",
         "deploy": "echo",
         "hasMods": false
@@ -174,14 +178,16 @@ test('Route patterns simple with cell', () => {
 });
 
 test('Route patterns simple with cell and user URL', () => {
-    const p = params("/notebooks/@tomlarkworthy/echo-server/deployments/echo/cells/cell/yoyoyo")
+    const url = "/notebooks/@tomlarkworthy/echo-server/deployments/echo/cells/cell/yoyoyo"
     expect(routes.decode({
-        params: p
+        params: params(url),
+        url: url
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
         "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": [],
+        "baseURL": "/notebooks/@tomlarkworthy/echo-server/deployments/echo/cells/cell" ,
         "userURL": "/yoyoyo",
         "deploy": "echo",
         "hasMods": false
@@ -205,14 +211,17 @@ test('Route patterns simple with secrets with cell', () => {
 });
 
 test('Route patterns simple with secrets with cell and user URL', () => {
-    const p = params("/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/c,d/cells/cell/yoyoyo")
+    const url = "/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/c,d/cells/cell/yoyoyo"
+    const p = params(url)
     expect(routes.decode({
-        params: p
+        params: p,
+        url
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
         "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": ["c", "d"],
+        "baseURL": "/notebooks/@tomlarkworthy/echo-server/deployments/echo/secrets/c,d/cells/cell",
         "userURL": "/yoyoyo",
         "deploy": "echo",
         "hasMods": false
@@ -222,14 +231,16 @@ test('Route patterns simple with secrets with cell and user URL', () => {
 
 
 test('Route patterns simple with secrets with cell and user URL, meta data first', () => {
-    const p = params("/secrets/c,d/cells/cell/notebooks/@tomlarkworthy/echo-server/deployments/echo/yoyoyo")
+    const url = "/secrets/c,d/cells/cell/notebooks/@tomlarkworthy/echo-server/deployments/echo/yoyoyo"
     expect(routes.decode({
-        params: p
+        params: params(url),
+        url: url
     })).toEqual({
         "shard": "@tomlarkworthy/echo-server",
         "notebook": "echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?cell=cell",
         "secretKeys": ["c", "d"],
+        "baseURL": "/secrets/c,d/cells/cell/notebooks/@tomlarkworthy/echo-server/deployments/echo",
         "userURL": "/yoyoyo",
         "deploy": "echo",
         "hasMods": false

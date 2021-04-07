@@ -4,6 +4,9 @@ export function decode(req) {
     let query = ''
     let secretKeys = req.params.secretids ? (req.params.secretids).split(",").map(decodeURIComponent): [];
     let userURL = "/" + (req.params.user || '');
+    let baseURL = req.params.user ? 
+        req.url.substring(0, req.url.length - userURL.length)
+        : req.url
     if (req.params.cellids) {
         query = '?' + req.params.cellids.split(",").map(name => `cell=${name}`).join("&")
     }
@@ -15,6 +18,7 @@ export function decode(req) {
     return {
         shard: `${req.params.namespace}/${req.params.notebook}`,
         notebookURL: notebookURL,
+        baseURL: baseURL,
         userURL: userURL,
         notebook: req.params.notebook,
         secretKeys: secretKeys,

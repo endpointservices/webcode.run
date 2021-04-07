@@ -73,6 +73,7 @@ app.all(routes.pattern, async (req, res) => {
         shard,
         notebookURL,
         notebook,
+        baseURL,
         userURL,
         secretKeys,
         deploy,
@@ -234,6 +235,7 @@ app.all(routes.pattern, async (req, res) => {
 
         const hasBody = Object.keys(req.body).length !== 0;
         const cellReq = {
+            baseUrl: baseURL,
             url: userURL,
             method: req.method,
             ...hasBody && {body: req.body.toString()},
