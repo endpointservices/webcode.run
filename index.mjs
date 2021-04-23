@@ -9,6 +9,7 @@ import cors from 'cors';
 import * as routes from './routes.mjs';
 import * as useragent from './useragent.mjs';
 import {Logger} from './logging.mjs';
+import {default as compression} from 'compression'
 
 const secretsClient = new SecretManagerServiceClient({
     projectId: "endpointservice"
@@ -19,6 +20,7 @@ app.use(cors({
     origin: true // Use origin.header
 }));
 app.use(bodyParser.raw({type: '*/*', limit: '2mb'})); // This means we buffer the body, really we should move towards streaming
+app.use(compression);
 
 // RATE LIMITERS
 import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
