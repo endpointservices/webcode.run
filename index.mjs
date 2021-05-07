@@ -19,7 +19,7 @@ export const app = express();
 app.use(cors({
     origin: true // Use origin.header
 }));
-app.use(bodyParser.raw({type: '*/*', limit: '2mb'})); // This means we buffer the body, really we should move towards streaming
+app.use(bodyParser.raw({type: '*/*', limit: '50mb'})); // This means we buffer the body, really we should move towards streaming
 app.use(compression());
 
 // RATE LIMITERS
@@ -28,8 +28,9 @@ import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
 
 let browsers = {}; // Cache of promises
 
+const localmode = process.env.LOCAL || false;
+
 async function newPage(shard) {
-    const localmode = process.env.LOCAL || false;
     if (browsers[shard] === undefined) {
         browsers[shard] = puppeteer.launch({ 
             devtools: localmode,
@@ -154,7 +155,7 @@ app.all(routes.pattern, async (req, res) => {
 
         // Tidy page on cancelled request
         req.on('close', async function (err) {
-            if (page) await page.close(); page = undefined;
+            if (page && !localmode) await page.close(); page = undefined;
         });
 
         await page.evaluateOnNewDocument((notebook) => {
@@ -251,7 +252,7 @@ app.all(routes.pattern, async (req, res) => {
             (req, deploy, context) => window["deployments"][deploy](req, context),
             cellReq, deploy, context);
 
-        await page.close(); page = undefined;
+        if (!localmode) await page.close(); page = undefined;
 
         const millis = Date.now() - t_start;
         
@@ -279,11 +280,11 @@ app.all(routes.pattern, async (req, res) => {
         });
 
     } catch (err) {
-        if (page) await page.close(); page = undefined;
+        if (page && !localmode) await page.close(); page = undefined;
         const millis = Date.now() - t_start;
         let status;
         if (err.message.startsWith("waiting for function failed")) {
-            err.message = `Deployment '${deploy}' not found, did you remember to publish your notebook?`
+            err.message = `Deployment '${deploy}' not found, did you remember to publish your notebook, or is your deploy function slow?`
             status = 404;
         } else {
             console.log("Error: ", err.message);
