@@ -171,7 +171,7 @@ app.all(routes.pattern, async (req, res) => {
         }));
         
 
-        // Wire up logging (TODO pipe to user log files too)
+        // Wire up logging
         page.on('console', message => logger.log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`))
             .on('pageerror', ({ message }) => logger.log(message))
         //    .on('response', response => logger.log(`${response.status()} ${response.url()}`))
@@ -248,6 +248,16 @@ app.all(routes.pattern, async (req, res) => {
             ip: req.ip,
         }
 
+        await page.exposeFunction(
+            '@endpointservices.write',
+            (chunk) => new Promise((resolve, reject) => {
+                if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
+                    chunk = Buffer.from(chunk.value, 'base64')
+                }
+                res.write(chunk, (err) => err ? resolve() : reject(err))
+            })  
+        );
+
         const result = await iframe.evaluate(
             (req, deploy, context) => window["deployments"][deploy](req, context),
             cellReq, deploy, context);
@@ -264,7 +274,6 @@ app.all(routes.pattern, async (req, res) => {
 
         if (result.send) {
             if (result.send.ARuRQygChDsaTvPRztEb === "bufferBase64") {
-                console.log("bufferBase64")
                 res.send(Buffer.from(result.send.value, 'base64'))
             } else {
                 res.send(result.send)
