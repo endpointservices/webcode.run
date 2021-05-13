@@ -254,7 +254,7 @@ app.all(routes.pattern, async (req, res) => {
                 if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
                     chunk = Buffer.from(chunk.value, 'base64')
                 }
-                res.write(chunk, (err) => err ? resolve() : reject(err))
+                res.write(chunk, (err) => err ? reject(err): resolve())
             })  
         );
 
