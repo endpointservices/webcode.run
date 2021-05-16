@@ -33,6 +33,7 @@ const localmode = process.env.LOCAL || false;
 async function newPage(shard) {
     if (browsers[shard] === undefined) {
         browsers[shard] = puppeteer.launch({ 
+            ...(process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD && {executablePath: 'google-chrome-stable'}),
             devtools: localmode,
             args: [
                 `--disk-cache-dir=/tmp/${shard}`,
@@ -248,28 +249,35 @@ app.all(routes.pattern, async (req, res) => {
             ip: req.ip,
         }
 
-        await page.exposeFunction(
+        page.exposeFunction(
+            '@endpointservices.header',
+            (header, value) => res.header(header, value)
+        );
+
+        page.exposeFunction(
+            '@endpointservices.status',
+            (status) => res.status(status)
+        );
+
+        page.exposeFunction(
             '@endpointservices.write',
             (chunk) => new Promise((resolve, reject) => {
                 if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
                     chunk = Buffer.from(chunk.value, 'base64')
-                }
+                } 
                 res.write(chunk, (err) => err ? reject(err): resolve())
             })  
         );
 
         const result = await iframe.evaluate(
             (req, deploy, context) => window["deployments"][deploy](req, context),
-            cellReq, deploy, context);
-
+            cellReq, deploy, context
+        );    
+         
         if (!localmode) await page.close(); page = undefined;
 
         const millis = Date.now() - t_start;
         
-        for (const [header, value] of Object.entries(result.headers || {})) {
-            res.header(header, value);
-        }
-        result.status ? res.status(result.status) : null;
         result.json ? res.json(result.json) : null;
 
         if (result.send) {
@@ -279,6 +287,7 @@ app.all(routes.pattern, async (req, res) => {
                 res.send(result.send)
             }
         }
+
         result.end ? res.end() : null;
 
         logger.log({
@@ -289,16 +298,17 @@ app.all(routes.pattern, async (req, res) => {
         });
 
     } catch (err) {
-        if (page && !localmode) await page.close(); page = undefined;
-        const millis = Date.now() - t_start;
         let status;
         if (err.message.startsWith("waiting for function failed")) {
             err.message = `Deployment '${deploy}' not found, did you remember to publish your notebook, or is your deploy function slow?`
             status = 404;
         } else {
-            console.log("Error: ", err.message);
+            console.error(err);
             status = 500;
         }
+
+        if (page && !localmode) await page.close(); page = undefined;
+        const millis = Date.now() - t_start;
 
         logger.log({
             url: req.url,

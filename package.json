@@ -8,7 +8,9 @@
     "start": "node index.mjs",
     "develop": "forever --watch index.mjs",
     "submit": "gcloud builds submit --tag eu.gcr.io/endpointservice/serversidecells:$TAG --project endpointservice",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config=jest.config.js"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config=jest.config.js",
+    "build_container": "docker build . -t dev --platform linux/amd64",
+    "run_container": "docker run --platform linux/amd64 -p 8080:8080 -it d1"
   },
   "author": "Tom Larkworthy",
   "license": "PolyForm Perimeter License 1.0.0",
@@ -22,7 +24,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "firebase-admin": "^9.4.1",
-    "puppeteer": "^5.5.0"
+    "puppeteer": "^5.5"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
