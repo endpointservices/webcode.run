@@ -249,17 +249,21 @@ app.all(routes.pattern, async (req, res) => {
             ip: req.ip,
         }
 
-        page.exposeFunction(
+        const pHeader = page.exposeFunction(
             '@endpointservices.header',
-            (header, value) => res.header(header, value)
+            (header, value) => {
+                res.header(header, value)
+            }
         );
 
-        page.exposeFunction(
+        const pStatus = page.exposeFunction(
             '@endpointservices.status',
-            (status) => res.status(status)
+            (status) => {
+                res.status(status)
+            }
         );
 
-        page.exposeFunction(
+        const pWrite = page.exposeFunction(
             '@endpointservices.write',
             (chunk) => new Promise((resolve, reject) => {
                 if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
@@ -268,7 +272,7 @@ app.all(routes.pattern, async (req, res) => {
                 res.write(chunk, (err) => err ? reject(err): resolve())
             })  
         );
-
+        await Promise.all([pHeader, pStatus, pWrite]);
         const result = await iframe.evaluate(
             (req, deploy, context) => window["deployments"][deploy](req, context),
             cellReq, deploy, context
