@@ -1,16 +1,33 @@
 FROM node:14-slim
 
+
+# Install Tinyproxy from source
+ENV TINYPROXY_VERSION=1.11.0-rc1
+RUN apt-get update  \
+  && apt-get install -y automake build-essential git \
+  && git clone -b ${TINYPROXY_VERSION} --depth=1 https://github.com/tinyproxy/tinyproxy.git /tmp/tinyproxy \
+  && cd /tmp/tinyproxy \
+  && ./autogen.sh \
+  && ./configure --enable-transparent --prefix="" \
+  && make \
+  && make install \
+  && mkdir -p /var/log/tinyproxy \
+#  && chown tinyproxy:tinyproxy /var/log/tinyproxy \
+  && cd / \
+  && rm -rf /tmp/tinyproxy
+
 # Install latest chrome dev package and fonts to support major charsets (Chinese, Japanese, Arabic, Hebrew, Thai and a few others)
 # Note: this installs the necessary libs to make the bundled version of Chromium that Puppeteer
 # installs, work.
 RUN apt-get update \
-    && apt-get install -y wget gnupg tinyproxy \
+    && apt-get install -y wget gnupg git \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
     && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
     && apt-get update \
     && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
       --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
+
 
 # If running Docker >= 1.13.0 use docker run's --init arg to reap zombie processes, otherwise
 # uncomment the following lines to have `dumb-init` as PID 1
@@ -35,7 +52,8 @@ RUN npm install --only=production \
     && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
     && mkdir -p /home/pptruser/Downloads \
     && chown -R pptruser:pptruser /home/pptruser \
-    && chown -R pptruser:pptruser /node_modules
+    && chown -R pptruser:pptruser /node_modules \
+    && chown -R pptruser:pptruser /var/log/tinyproxy
 
 # Copy local code to the container image.
 COPY . ./
@@ -44,4 +62,4 @@ COPY . ./
 USER pptruser
 
 # Run the web service on container startup.
-CMD [ "npm", "start" ]
+CMD [ "./main.sh" ]

@@ -10,7 +10,7 @@
     "submit": "gcloud builds submit --tag eu.gcr.io/endpointservice/serversidecells:$TAG --project endpointservice",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config=jest.config.js",
     "build_container": "docker build . -t dev --platform linux/amd64",
-    "run_container": "docker run --platform linux/amd64 -p 8080:8080 -it d1"
+    "run_container": "docker run --platform linux/amd64 -p 8080:8080 -it dev"
   },
   "author": "Tom Larkworthy",
   "license": "PolyForm Perimeter License 1.0.0",
