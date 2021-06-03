@@ -10,6 +10,16 @@ import * as routes from './routes.mjs';
 import * as useragent from './useragent.mjs';
 import {Logger} from './logging.mjs';
 import {default as compression} from 'compression'
+import {puppeteerProxy} from './puppeteer.mjs';
+
+
+const users = admin.initializeApp({
+    apiKey: "AIzaSyBquSsEgQnG_rHyasUA95xHN5INnvnh3gc",
+    authDomain: "endpointserviceusers.firebaseapp.com",
+    projectId: "endpointserviceusers",
+    appId: "1:283622646315:web:baa488124636283783006e"
+}, 'users');
+
 
 const secretsClient = new SecretManagerServiceClient({
     projectId: "endpointservice"
@@ -30,12 +40,13 @@ let browsers = {}; // Cache of promises
 
 const localmode = process.env.LOCAL || false;
 
-async function newPage(shard) {
+async function newPage(shard, args = []) {
     if (browsers[shard] === undefined) {
         browsers[shard] = puppeteer.launch({ 
             ...(process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD && {executablePath: 'google-chrome-stable'}),
             devtools: localmode,
             args: [
+                ...args,
                 `--disk-cache-dir=/tmp/${shard}`,
                 `--media-cache-dir=/tmp/${shard}`,
                 `--media-cache-size=1000000`, // 1MB
@@ -156,7 +167,9 @@ app.all(routes.pattern, async (req, res) => {
 
         // Tidy page on cancelled request
         req.on('close', async function (err) {
-            if (page && !localmode) await page.close(); page = undefined;
+            if (page && !localmode) {
+                await page.close(); page = undefined;
+            }
         });
 
         await page.evaluateOnNewDocument((notebook) => {
@@ -278,7 +291,10 @@ app.all(routes.pattern, async (req, res) => {
             cellReq, deploy, context
         );    
          
-        if (!localmode) await page.close(); page = undefined;
+        if (!localmode) {
+            await page.close();
+            page = undefined;
+        }
 
         const millis = Date.now() - t_start;
         
@@ -311,7 +327,10 @@ app.all(routes.pattern, async (req, res) => {
             status = 500;
         }
 
-        if (page && !localmode) await page.close(); page = undefined;
+        if (page && !localmode) {
+            await page.close();
+            page = undefined;
+        }
         const millis = Date.now() - t_start;
 
         logger.log({
@@ -323,6 +342,15 @@ app.all(routes.pattern, async (req, res) => {
         res.status(status).send(err.message);
     }
 });
+app.use('/puppeteer', (req, res, next) => {
+    const token = req.query.token;
+    console.log(token)
+    if (token) {
+        next()
+    } else res.status(403).send()
+});
+app.use('/puppeteer', puppeteerProxy);
+
 
 app.use((req, res) => {
     res.status(404).send("Request not handled");
