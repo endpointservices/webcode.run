@@ -342,7 +342,7 @@ app.all(routes.pattern, async (req, res) => {
         res.status(status).send(err.message);
     }
 });
-app.use('/puppeteer', async (req, res, next) => {
+app.use('(/regions/:region)?/puppeteer', async (req, res, next) => {
     try {
         const decoded = await users.auth().verifyIdToken(req.query.token)
         console.log("puppeteer user", decoded.uid);
@@ -352,7 +352,7 @@ app.use('/puppeteer', async (req, res, next) => {
         res.status(403).send(err.message)
     }
 });
-app.use('/puppeteer', puppeteerProxy);
+app.use('(/regions/:region)?/puppeteer', puppeteerProxy);
 
 
 app.use((req, res) => {
