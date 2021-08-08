@@ -1,12 +1,14 @@
 FROM node:14-slim
-
+RUN apt-get update  \
+  && apt-get install -y automake build-essential git
 
 # Install Tinyproxy from source
-ENV TINYPROXY_VERSION=1.11.0-rc1
-RUN apt-get update  \
-  && apt-get install -y automake build-essential git \
-  && git clone -b ${TINYPROXY_VERSION} --depth=1 https://github.com/tinyproxy/tinyproxy.git /tmp/tinyproxy \
+#ENV TINYPROXY_VERSION=1.11.0
+#RUN git clone -b ${TINYPROXY_VERSION} --depth=1 https://github.com/tinyproxy/tinyproxy.git /tmp/tinyproxy \
+RUN cd /tmp \
+  && git clone https://github.com/tinyproxy/tinyproxy.git \
   && cd /tmp/tinyproxy \
+  && git checkout 7168a42 \
   && ./autogen.sh \
   && ./configure --enable-transparent --prefix="" \
   && make \

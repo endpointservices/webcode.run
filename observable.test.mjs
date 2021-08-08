@@ -14,13 +14,130 @@ function params(url) {
 }
 
 
-test('Observbale patterns default', () => {
-    const p = params("observablehq.com/@tomlarkworthy/echo-server")
+test('Observable decode, default name, no path', () => {
+    const url = ("/observablehq.com/@tomlarkworthy/echo-server")
     expect(observable.decode({
-        params: p
+        url,
+        params: params(url)
     })).toEqual({
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "notebook":"echo-server",
+        "path": "/",
+        "name": "default",
+        "namespace": "tomlarkworthy"
+    })
+});
+
+
+test('Observable decode, default name, with path', () => {
+    const url = "/observablehq.com/@tomlarkworthy/echo-server/mypath"
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "path": "/mypath",
+        "notebook":"echo-server",
+        "name": "default",
+        "namespace": "tomlarkworthy"
+    })
+});
+
+
+test('Observable decode, named cell, no path', () => {
+    const url = ("/observablehq.com/@tomlarkworthy/echo-server;ping")
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/",
-        "name": "default"
+        "notebook":"echo-server",
+        "name": "ping",
+        "namespace": "tomlarkworthy"
+    })
+});
+
+
+
+test('Observable decode, named cell, with path', () => {
+    const url = ("/observablehq.com/@tomlarkworthy/echo-server;ping/mypath")
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "path": "/mypath",
+        "notebook":"echo-server",
+        "name": "ping",
+        "namespace": "tomlarkworthy"
+    })
+});
+
+
+test('Observable decode, link shared, named cell, with path', () => {
+    const url = ("/observablehq.com/d/a1df3130b62f47ef;ping/mypath")
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/d/a1df3130b62f47ef;ping",
+        "notebookURL": "https://observablehq.com/embed/a1df3130b62f47ef",
+        "path": "/mypath",
+        "notebook":"d/a1df3130b62f47ef",
+        "name": "ping"
+    })
+});
+
+
+test('Observable decode, region match', () => {
+    const url = ("/regions/us-east1/observablehq.com/@tomlarkworthy/echo-server")
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/regions/us-east1/observablehq.com/@tomlarkworthy/echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
+        "path": "/",
+        "notebook":"echo-server",
+        "name": "default",
+        "namespace": "tomlarkworthy"
+    })
+});
+
+
+test('Observable decode, versioning', () => {
+    const url = ("/observablehq.com/@tomlarkworthy/echo-server@31")
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server@31",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server@31",
+        "path": "/",
+        "notebook":"echo-server",
+        "name": "default",
+        "version": "31",
+        "namespace": "tomlarkworthy"
+    })
+});
+
+
+test('Observable decode, versioning, link-shared', () => {
+    const url = ("/observablehq.com/d/a1df3130b62f47ef@31")
+    expect(observable.decode({
+        url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/d/a1df3130b62f47ef@31",
+        "notebookURL": "https://observablehq.com/embed/a1df3130b62f47ef@31",
+        "path": "/",
+        "notebook":"d/a1df3130b62f47ef",
+        "name": "default",
+        "version": "31"
     })
 });

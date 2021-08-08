@@ -30,3 +30,22 @@ export function checkRate(id, config, now_secs) {
     }
 }
 
+export function limiter(req, res, next) {
+    try {
+        checkRate(req.ip,  BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
+    } catch (err) {
+        console.log("IP Burstable limit hit");
+        res.header('Retry-After', '2')
+        return res.status(429).send("Burstable rate limit of 1 request per second per IP exceeded");
+    }
+
+    try {
+        checkRate(req.url, BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
+    } catch (err) {
+        console.log("URL Burstable limit hit");
+        res.header('Retry-After', '2')
+        return res.status(429).send("Burstable rate limit of 1 request per second per IP exceeded");
+    }
+    next()
+}
+

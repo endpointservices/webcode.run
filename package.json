@@ -6,9 +6,9 @@
   "main": "index.mjs",
   "scripts": {
     "start": "node index.mjs",
-    "develop": "forever --watch index.mjs",
+    "develop": "tinyproxy -dc ./tinyproxy.conf & forever --watch index.mjs",
     "submit": "gcloud builds submit --tag eu.gcr.io/endpointservice/serversidecells:$TAG --project endpointservice",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config=jest.config.js",
+    "test": "tinyproxy -dc ./tinyproxy.conf & NODE_OPTIONS=--experimental-vm-modules node_modules/.bin/jest --config=jest.config.js",
     "build_container": "docker build . -t dev --platform linux/amd64",
     "run_container": "docker run --platform linux/amd64 -p 8080:8080 -it dev"
   },
@@ -25,6 +25,7 @@
     "express": "^4.17.1",
     "firebase-admin": "^9.4.1",
     "http-proxy-middleware": "^2.0.0",
+    "lodash-es": "^4.17.21",
     "puppeteer": "^5.5"
   },
   "devDependencies": {
