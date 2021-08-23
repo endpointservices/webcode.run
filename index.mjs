@@ -23,6 +23,7 @@ const users = admin.initializeApp({
     appId: "1:283622646315:web:baa488124636283783006e"
 }, 'users');
 
+configcache.setCacheFirebase(users);
 
 const secretsClient = new SecretManagerServiceClient({
     projectId: "endpointservice"
@@ -167,7 +168,6 @@ app.all(routes.pattern, async (req, res) => {
     const t_start = Date.now();
 
     try {
-
         page = await newPage(shard);
 
         // Tidy page on cancelled request
@@ -352,7 +352,7 @@ app.all(observable.pattern, [
     limiter,
     async (req, res, next) => {    
         req.requestConfig = observable.decode(req);
-        req.cachedConfig = await configcache.get(req.requestConfig.notebookURL, req.requestConfig.name);
+        req.cachedConfig = await configcache.get(req.requestConfig.baseURL);
         next()
     },
     loopbreak,
@@ -398,7 +398,7 @@ app.all(observable.pattern, [
                 await page.close(); page = undefined;
 
                 if (shard === notebookURL) {
-                    // can;t close might be used by a parrallel request
+                    // can't close might be used by a parrallel request
                     // console.log(`Closing browser on shard ${shard}`);
                     // We used a notebookURL shard so kill the browser too as we know the true namespace now
                     // await (await browsers[shard]).close();
@@ -482,20 +482,17 @@ app.all(observable.pattern, [
               }, deploymentHandle
             );   
             
-            // This will be cached, and drive restart so be very carful as if it is not stable
-            // we will have loops
-            req.config = {
+
+            // Update cache so we always have latest
+            await configcache.setNotebook(req.requestConfig.baseURL, {
                 modifiers: deploymentConfig.modifiers || [],
                 secrets: deploymentConfig.secrets || [],
                 namespace
-            }
+            });
 
-            // Update cache so we always have latest
-            if (!_.isEqual(req.cachedConfig, req.config)) {
-                // Actual config is different to cached version
-                console.log(`Config cache miss for ${JSON.stringify(req.cachedConfig)} != ${JSON.stringify(req.config)}`)
-                configcache.set(req.requestConfig.notebookURL, req.requestConfig.name, req.config);
-            }
+            // This will be cached, and drive restart so be very carful as if it is not stable
+            // we will have loops
+            req.config = await configcache.get(req.requestConfig.baseURL);
 
             // Now we decide to restart or not
             // If the modifiers change we just need to rerun the loopbreaking logic

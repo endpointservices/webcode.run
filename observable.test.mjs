@@ -100,7 +100,7 @@ test('Observable decode, region match', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/regions/us-east1/observablehq.com/@tomlarkworthy/echo-server",
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/",
         "notebook":"echo-server",

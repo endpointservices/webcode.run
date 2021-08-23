@@ -9,9 +9,9 @@ export function decode(req) {
 
     const notebook = req.params.id ? `d/${req.params.id}` : req.params.notebook
     let userURL = "/" + (req.params.path || '');
-    let baseURL = req.params.path ? 
+    let baseURL = (req.params.path ? 
         req.url.substring(0, req.url.length - userURL.length)
-        : req.url
+        : req.url).replace(/regions\/[^/]*\//, '');
     return {
         notebookURL: notebookURL,
         notebook,
