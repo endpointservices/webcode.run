@@ -32,7 +32,7 @@ export const get = async (baseURL, name) => {
 const cacheFirestore = {};
 export const getDynamic = async (endpointURL) => {
     endpointURL = endpointURL.substring(1);
-    if (cacheFirestore[endpointURL]) return cacheFirestore[endpointURL];
+    if (cacheFirestore[endpointURL] !== undefined) return cacheFirestore[endpointURL];
     else {
         // create subscription to watch for changes
         const firestore = cacheFirebase.firestore();
