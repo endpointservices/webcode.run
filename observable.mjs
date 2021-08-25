@@ -22,3 +22,17 @@ export function decode(req) {
         ...(req.params.version && {version: req.params.version})
     };
 }
+
+export function createCellRequest(req) {
+    const hasBody = Object.keys(req.body).length !== 0;
+    return {
+        baseUrl: req.requestConfig.baseURL,
+        url: req.requestConfig.path,
+        method: req.method,
+        ...hasBody && {body: req.body.toString()},
+        ...(req.cookies && {cookies: req.cookies}),
+        query: req.query,
+        headers: req.headers,
+        ip: req.ip,
+    };
+}

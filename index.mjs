@@ -1,7 +1,6 @@
 process.env.GOOGLE_CLOUD_PROJECT = "endpointservice";
 import {default as express} from 'express';
 import {default as admin} from 'firebase-admin';
-admin.initializeApp();
 import {default as bodyParser} from 'body-parser';
 import {default as puppeteer} from 'puppeteer';
 import {SecretManagerServiceClient} from '@google-cloud/secret-manager';
@@ -11,19 +10,28 @@ import * as observable from './observable.mjs';
 import * as useragent from './useragent.mjs';
 import * as configcache from './configcache.mjs';
 import {loopbreak} from './loopbreak.mjs'
+import {debuggerMiddleware, setDebugFirebase} from './debugger.mjs';
 import {Logger} from './logging.mjs';
 import {default as compression} from 'compression'
 import {puppeteerProxy} from './puppeteer.mjs';
 import * as _ from 'lodash-es';
 
+const firebase = admin.initializeApp({
+    apiKey: "AIzaSyD882c8YEgeYpNkX01fhpUDfioWl_ETQyQ",
+    authDomain: "endpointservice.firebaseapp.com",
+    projectId: "endpointservice",
+    databaseURL: "https://endpointservice-eu.europe-west1.firebasedatabase.app/"
+});
+
 const users = admin.initializeApp({
     apiKey: "AIzaSyBquSsEgQnG_rHyasUA95xHN5INnvnh3gc",
     authDomain: "endpointserviceusers.firebaseapp.com",
     projectId: "endpointserviceusers",
-    appId: "1:283622646315:web:baa488124636283783006e"
+    appId: "1:283622646315:web:baa488124636283783006e",
 }, 'users');
 
-configcache.setCacheFirebase(users);
+configcache.setCacheFirebase(firebase);
+setDebugFirebase(firebase)
 
 const secretsClient = new SecretManagerServiceClient({
     projectId: "endpointservice"
@@ -349,13 +357,13 @@ app.all(routes.pattern, async (req, res) => {
 });
 
 app.all(observable.pattern, [
-    limiter,
     async (req, res, next) => {    
         req.requestConfig = observable.decode(req);
         req.cachedConfig = await configcache.get(req.requestConfig.baseURL);
         next()
     },
     loopbreak,
+    limiter,
     async (req, res, next) => { 
         if (req.cachedConfig) {
             // Start loading secrets ASAP in the background
@@ -377,6 +385,7 @@ app.all(observable.pattern, [
         }
         next()
     },
+    debuggerMiddleware,
     async (req, res, next) => { 
         let page = null;
         const throwError = (status, message) => {
@@ -533,18 +542,7 @@ app.all(observable.pattern, [
                 secrets: await resolveObject(req.pendingSecrets || {}) // Resolve all outstanding secret fetches
             };
 
-
-            const hasBody = Object.keys(req.body).length !== 0;
-            const cellReq = {
-                baseUrl: req.requestConfig.baseURL,
-                url: req.requestConfig.path,
-                method: req.method,
-                ...hasBody && {body: req.body.toString()},
-                cookies: req.cookies,
-                query: req.query,
-                headers: req.headers,
-                ip: req.ip,
-            }
+            const cellReq = observable.createCellRequest(req);
 
             const pHeader = page.exposeFunction(
                 '@endpointservices.header',
