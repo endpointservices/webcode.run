@@ -524,6 +524,7 @@ app.all(observable.pattern, [
                 modifiers: undefined, namespace: undefined};
             
             if (!_.isEqual(remainingConfig, remainingCachedConfig)) {
+                console.log("Config change, rerequesting");
                 return app.handle(req, res); // Do the whole thing again
             };
 
@@ -637,7 +638,7 @@ app.use('(/regions/:region)?/puppeteer', puppeteerProxy);
 
 
 app.use((req, res) => {
-    res.status(404).send("Request not handled");
+    res.redirect(302, "https://observablehq.com/@tomlarkworthy/webcode");
 });
 
 app.server = app.listen(process.env.PORT || 8080);
