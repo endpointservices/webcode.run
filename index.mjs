@@ -238,7 +238,7 @@ app.all(routes.pattern, async (req, res) => {
             location: undefined,
             namespace,
             notebook: notebook,
-            job: notebookURL,
+            job: baseURL,
             task_id: Math.random().toString(36).substr(2, 9)
         });
 
@@ -476,7 +476,7 @@ app.all(observable.pattern, [
                 location: undefined,
                 namespace,
                 notebook: req.requestConfig.notebook,
-                job: notebookURL,
+                job: req.requestConfig.baseURL,
                 task_id: Math.random().toString(36).substr(2, 9)
             });
 
