@@ -9,14 +9,19 @@ export function decode(req) {
 
     const notebook = req.params.id ? `d/${req.params.id}` : req.params.notebook
     let userURL = "/" + (req.params.path || '');
-    let baseURL = (req.params.path ? 
-        req.url.substring(0, req.url.length - userURL.length)
-        : req.url).replace(/regions\/[^/]*\//, '');
+    const name = req.params.name || 'default';
+
+    const baseURL = 
+        `/observablehq.com` + 
+        `${req.params.id ? `/d/${req.params.id}`:`/@${req.params.owner}/${req.params.notebook}`}` + 
+        `${req.params.version ? `@${req.params.version}`: ''}` + 
+        `${req.params.name ? `;${req.params.name}` : ``}`;
+
     return {
         notebookURL: notebookURL,
         notebook,
         path: userURL,
-        name: req.params.name || 'default',
+        name: name,
         baseURL,
         ...(req.params.owner && {namespace: req.params.owner}),
         ...(req.params.version && {version: req.params.version})

@@ -2,10 +2,10 @@ process.env.mode = 'test';
 import {app, shutdown} from './index.mjs';
 import * as supertest from 'supertest';
 
-test('Serverside unexpected route', async () => {
+test('Serverside SPA 302', async () => {
     await supertest.default(app)
         .get('/random')
-        .expect(404);
+        .expect(302);
 });
 
 test('Serverside notebook smoke LEGACY route', async () => {

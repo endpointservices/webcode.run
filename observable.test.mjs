@@ -141,3 +141,19 @@ test('Observable decode, versioning, link-shared', () => {
         "version": "31"
     })
 });
+
+/*
+test('Observable decode, with param', () => {
+    const url = ("/observablehq.com/@tomlarkworthy/echo-server?foo")
+    expect(observable.decode({
+        url: url,
+        params: params(url)
+    })).toEqual({
+        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
+        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server?foo",
+        "path": "/",
+        "notebook":"echo-server",
+        "name": "default",
+        "namespace": "tomlarkworthy"
+    })
+});*/
