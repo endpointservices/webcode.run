@@ -96,6 +96,17 @@ async function newPage(shard, args = []) {
     return page;
 }
 
+
+// Start loading secrets ASAP in the background
+async function lookupSecret(key) {
+    // Access the secret.
+    const [accessResponse] = await secretsClient.accessSecretVersion({
+        name: `projects/1986724398/secrets/${key}/versions/latest`,
+    });
+    const responsePayload = accessResponse.payload.data.toString('utf8');
+    return responsePayload;
+}
+
 app.all(routes.pattern, async (req, res) => {
     
     const {
@@ -151,17 +162,9 @@ app.all(routes.pattern, async (req, res) => {
 
 
     // Start loading secrets ASAP in the background
-    async function lookup(key) {
-        // Access the secret.
-        const [accessResponse] = await secretsClient.accessSecretVersion({
-            name: `projects/1986724398/secrets/${key}/versions/latest`,
-        });
-        const responsePayload = accessResponse.payload.data.toString('utf8');
-        return responsePayload;
-    }
     const secrets = secretKeys.reduce(
         (acc, key) => {
-            acc[key] = lookup(key);
+            acc[key] = lookupSecret(key);
             return acc;
         },
         {}
@@ -366,22 +369,13 @@ app.all(observable.pattern, [
     limiter,
     async (req, res, next) => { 
         if (req.cachedConfig) {
-            // Start loading secrets ASAP in the background
-            async function lookup(key) {
-                // Access the secret.
-                const [accessResponse] = await secretsClient.accessSecretVersion({
-                    name: `projects/1986724398/secrets/${key}/versions/latest`,
-                });
-                const responsePayload = accessResponse.payload.data.toString('utf8');
-                return responsePayload;
-            }
             req.pendingSecrets = (req.cachedConfig.secrets || []).reduce(
                 (acc, key) => {
-                    acc[key] = lookup(key);
+                    acc[key] = lookupSecret(key);
                     return acc;
                 },
                 {}
-            )
+            );
         }
         next()
     },
@@ -534,13 +528,19 @@ app.all(observable.pattern, [
                     throwError(403, `Notebooks by ${namespace} cannot access ${key}`)
                 }
             });
+            
+            // Resolve all outstanding secret fetches
+            const secrets = await resolveObject(req.pendingSecrets || {});
+            // ergonomics improvement, strip namespace_ prefix of all secrets
+            Object.keys(secrets).forEach(
+                secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
 
             // Resolve all the promises
             const context = {
                 serverless: true,
                 namespace,
                 notebook: req.requestConfig.notebook,
-                secrets: await resolveObject(req.pendingSecrets || {}) // Resolve all outstanding secret fetches
+                secrets: secrets
             };
 
             const cellReq = observable.createCellRequest(req);

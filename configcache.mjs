@@ -21,7 +21,7 @@ export const get = async (baseURL, name) => {
         return undefined;
     }
 
-    return _.mergeWith(dynamic, notebook, (objValue, srcValue) => {
+    return _.mergeWith(_.cloneDeep(dynamic), notebook, (objValue, srcValue) => {
         if (_.isArray(objValue)) {
             return objValue.concat(srcValue);
         }

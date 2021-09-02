@@ -9,13 +9,33 @@ export async function debuggerMiddleware(req, res, next) {
         const status = await debugFirebase.database().ref(req.cachedConfig.debugger.path + "/status").once('value');
         if (status.val() === 'online') {
             // todo unsubscribe when status leaves offline
-
+            
             console.log("Tunneling request over", req.cachedConfig.debugger.path)
             const cellReq = observable.createCellRequest(req);
             const id = Math.random().toString(36).substr(2, 9);
+
+
+            // SECURITY: Now we ensure all the secrets resolve and they are keyed by the domain being executed
+            const namespace = req.cachedConfig.namespace;
+            Object.keys(req.pendingSecrets || {}).map(key => {
+                if (!key.startsWith(namespace)) {
+                    const err = new Error(`Notebooks by ${namespace} cannot access ${key}`);
+                    err.status = 403;
+                    throw err;
+                }
+            });
+            
+            // Resolve all outstanding secret fetches
+            const secrets = await resolveObject(req.pendingSecrets || {});
+            // ergonomics improvement, strip namespace_ prefix of all secrets
+            Object.keys(secrets).forEach(
+                secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
             
             debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id).set({
-                request: cellReq
+                request: cellReq,
+                context: {
+                    secrets
+                }
             });
 
             debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id + "/headers").on('child_added', snap => {
@@ -58,4 +78,10 @@ export async function debuggerMiddleware(req, res, next) {
     } else {
         next();
     }
+}
+
+function resolveObject(obj) {
+    return Promise.all(
+      Object.entries(obj).map(async ([k, v]) => [k, await v])
+    ).then(Object.fromEntries);
 }
