@@ -1,8 +1,6 @@
 import * as _ from 'lodash-es';
 const cache = {};
 
-const endpointURL = (baseURL, name) => `${baseURL};${name}`
-
 let cacheFirebase;
 
 export const setCacheFirebase = (firebase) => cacheFirebase = firebase;

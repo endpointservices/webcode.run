@@ -2,17 +2,18 @@ process.env.GOOGLE_CLOUD_PROJECT = "endpointservice";
 import {default as express} from 'express';
 import {default as admin} from 'firebase-admin';
 import {default as bodyParser} from 'body-parser';
-import {default as puppeteer} from 'puppeteer';
 import {SecretManagerServiceClient} from '@google-cloud/secret-manager';
 import cors from 'cors';
 import * as routes from './routes.mjs';
 import * as observable from './observable.mjs';
 import * as useragent from './useragent.mjs';
 import * as configcache from './configcache.mjs';
-import {loopbreak} from './loopbreak.mjs'
+import * as browsercache from './browsercache.mjs';
+import {promiseRecursive} from './utils.mjs';
+import {loopbreak} from './loopbreak.mjs';
 import {debuggerMiddleware, setDebugFirebase} from './debugger.mjs';
 import {Logger} from './logging.mjs';
-import {default as compression} from 'compression'
+import {default as compression} from 'compression';
 import {puppeteerProxy} from './puppeteer.mjs';
 import * as _ from 'lodash-es';
 
@@ -49,53 +50,7 @@ app.use(compression());
 import {checkRate, BURSTABLE_RATE_LIMIT, limiter} from './limits.mjs';
 
 
-let browsers = {}; // Cache of promises
-
 const localmode = process.env.LOCAL || false;
-
-async function newPage(shard, args = []) {
-    if (browsers[shard] === undefined) {
-        console.log(`Launching new browser on shard ${shard}`);
-        browsers[shard] = puppeteer.launch({ 
-            ...(process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD && {executablePath: 'google-chrome-stable'}),
-            devtools: localmode,
-            args: [
-                ...args,
-                `--disk-cache-dir=/tmp/${shard}`,
-                `--media-cache-dir=/tmp/${shard}`,
-                `--media-cache-size=1000000`, // 1MB
-                `--disk-cache-size=1000000`,
-                '--no-sandbox', // Not necissary if running with --cap-add=SYS_ADMIN
-                '--no-zygote',
-                '--disable-gpu',
-                '--mute-audio',
-                '--disable-dev-shm-usage',
-                '--disable-web-security', // Turn off CORS
-                localmode ? '--disable-features=site-per-process': '', // Helps keep iframe detection working https://github.com/puppeteer/puppeteer/issues/5123#issuecomment-559158303 when using devtools
-                `--user-agent=${useragent.base}` // We set it on a per page but incase we forget we set it here too
-            ]
-        })
-
-    }
-    const page = await (await browsers[shard]).newPage();
-    
-    await page.setRequestInterception(true)
-    
-    page.on('request', interceptedRequest => {
-        const hostname = new URL(interceptedRequest.url()).hostname;
-        if (hostname.endsWith(".internal") || // Prevent access to e.g. Metadata server
-            hostname === "127.0.0.1" ||
-            hostname === "0.0.0.0") {
-            interceptedRequest.abort()
-        } else {
-            // Note we can't mutate fetch requests until https://github.com/puppeteer/puppeteer/issues/2781
-            interceptedRequest.continue()
-        }
-    })
-
-    return page;
-}
-
 
 // Start loading secrets ASAP in the background
 async function lookupSecret(key) {
@@ -118,6 +73,7 @@ app.all(routes.pattern, async (req, res) => {
     app.handle(req, res);
 });
 
+// Handler for observablehq.com notebooks
 app.all(observable.pattern, [
     async (req, res, next) => {    
         req.requestConfig = observable.decode(req);
@@ -169,7 +125,7 @@ app.all(observable.pattern, [
         }
 
         try {
-            page = await newPage(shard, ['--proxy-server=127.0.0.1:8888']);
+            page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
 
             // Tidy page on cancelled request
             req.on('close', closePage);
@@ -289,7 +245,7 @@ app.all(observable.pattern, [
             });
             
             // Resolve all outstanding secret fetches
-            const secrets = await resolveObject(req.pendingSecrets || {});
+            const secrets = await promiseRecursive(req.pendingSecrets || {});
             // ergonomics improvement, strip namespace_ prefix of all secrets
             Object.keys(secrets).forEach(
                 secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
@@ -396,6 +352,9 @@ app.use('(/regions/:region)?/puppeteer', async (req, res, next) => {
 app.use('(/regions/:region)?/puppeteer', puppeteerProxy);
 
 
+app.use('(/regions/:region)?/.stats', browsercache.stats);
+
+
 app.use((req, res) => {
     res.redirect(302, "https://observablehq.com/@tomlarkworthy/webcode");
 });
@@ -405,13 +364,6 @@ app.server = app.listen(process.env.PORT || 8080);
 export const shutdown = async () => {
     console.log("Shutting down...")
     app.server.close();
-    Object.keys(browsers).forEach(async shard => {
-        await (await browsers[shard]).close()
-    });
+    await browsercache.shutdown();
 }
 
-function resolveObject(obj) {
-    return Promise.all(
-      Object.entries(obj).map(async ([k, v]) => [k, await v])
-    ).then(Object.fromEntries);
-}
