@@ -36,8 +36,8 @@ export function createCellRequest(req) {
         method: req.method,
         ...hasBody && {body: req.body.toString()},
         ...(req.cookies && {cookies: req.cookies}),
-        query: req.query,
-        headers: req.headers,
+        query: req.query || {},
+        headers: req.headers || {},
         ip: req.ip,
     };
 }
