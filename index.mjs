@@ -138,7 +138,6 @@ app.all(observable.pattern, [
         try {
             responses[req.id] = res;
             let pageReused = false;
-            let page = undefined;
 
             // Tidy page on cancelled request
             if (!req.cachedConfig || !req.cachedConfig.reusable) {
@@ -278,9 +277,9 @@ app.all(observable.pattern, [
             // Anything else though (only SECRETs at present) should restart.
             const remainingCachedConfig = {...(req.cachedConfig || {
                 secrets: []
-            }), modifiers: undefined, namespace: undefined};
+            }), modifiers: undefined, namespace: undefined, reusable: undefined};
             const remainingConfig = {...req.config,
-                modifiers: undefined, namespace: undefined};
+                modifiers: undefined, namespace: undefined, reusable: undefined};
             
             if (!_.isEqual(remainingConfig, remainingCachedConfig)) {
                 console.log("Config change, rerequesting");
