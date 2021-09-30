@@ -20,7 +20,7 @@ test('Observable decode, default name, no path', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "notebook":"echo-server",
         "path": "/",
@@ -36,7 +36,7 @@ test('Observable decode, default name, with path', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/mypath",
         "notebook":"echo-server",
@@ -52,7 +52,7 @@ test('Observable decode, named cell, no path', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/",
         "notebook":"echo-server",
@@ -69,7 +69,7 @@ test('Observable decode, named cell, with path', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/mypath",
         "notebook":"echo-server",
@@ -85,7 +85,7 @@ test('Observable decode, link shared, named cell, with path', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/d/a1df3130b62f47ef;ping",
+        "endpointURL": "/observablehq.com/d/a1df3130b62f47ef;ping",
         "notebookURL": "https://observablehq.com/embed/a1df3130b62f47ef",
         "path": "/mypath",
         "notebook":"d/a1df3130b62f47ef",
@@ -100,7 +100,7 @@ test('Observable decode, region match', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server",
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/",
         "notebook":"echo-server",
@@ -116,7 +116,7 @@ test('Observable decode, versioning', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/@tomlarkworthy/echo-server@31",
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server@31",
         "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server@31",
         "path": "/",
         "notebook":"echo-server",
@@ -133,13 +133,20 @@ test('Observable decode, versioning, link-shared', () => {
         url,
         params: params(url)
     })).toEqual({
-        "baseURL": "/observablehq.com/d/a1df3130b62f47ef@31",
+        "endpointURL": "/observablehq.com/d/a1df3130b62f47ef@31",
         "notebookURL": "https://observablehq.com/embed/a1df3130b62f47ef@31",
         "path": "/",
         "notebook":"d/a1df3130b62f47ef",
         "name": "default",
         "version": "31"
     })
+});
+
+test('canHost', () => {
+    expect(observable.canHost(
+        "https://observablehq.com/embed/a1df3130b62f47ef@31", 
+        "/observablehq.com/d/a1df3130b62f47ef@31"
+    )).toBe(true);
 });
 
 /*

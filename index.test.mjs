@@ -22,6 +22,18 @@ test('/observablehq.com/@tomlarkworthy/echo-server;echo responds to PUT', async 
         .expect(200, "cool");
 }, 30000);
 
+test('/observablehq.com/@tomlarkworthy/echo-server-fast responds to PUT', async () => {
+    await supertest.default(app)
+        .put('/observablehq.com/@tomlarkworthy/echo-server-fast')
+        .send('cool1')
+        .expect(200, "cool1");
+    
+    await supertest.default(app)
+        .put('/observablehq.com/@tomlarkworthy/echo-server-fast')
+        .send('cool2')
+        .expect(200, "cool2");
+}, 30000);
+
 
 test('/observablehq.com/@endpointservices/d/72412b3f07ab976f@34 responds to GET', async () => {
     await supertest.default(app)
@@ -45,8 +57,10 @@ test('/observablehq.com/@endpointservices/serverless-cell-tests;contextFields re
         .get('/observablehq.com/@endpointservices/serverless-cell-tests;contextFields')
         .expect(function(res) {
             res.body.headers.host = 'something';
+            res.body.id = 'zdh30cl90';
         })
         .expect(200, {
+            id: "zdh30cl90",
             baseUrl: '/observablehq.com/@endpointservices/serverless-cell-tests;contextFields',
             url: '/',
             method: 'GET',

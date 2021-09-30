@@ -5,15 +5,18 @@ let cacheFirebase;
 
 export const setCacheFirebase = (firebase) => cacheFirebase = firebase;
 
+// To be called to indicate an endpoint has changes and any resources should be purged
+let invalidationCallback = (namespace, baseURL) => {}
+export const setInvalidationCallback = (callback) => invalidationCallback = callback;
 
 // For config defined in notebooks
-export const setNotebook = async (baseURL, config) => cache[baseURL] = config;
-export const getNotebook = async (baseURL) => cache[baseURL];
+export const setNotebook = async (endpointURL, config) => cache[endpointURL] = config;
+export const getNotebook = async (endpointURL) => cache[endpointURL];
 
 
-export const get = async (baseURL, name) => {
-    const dynamic = await getDynamic(baseURL);
-    const notebook = await getNotebook(baseURL, name);
+export const get = async (endpointURL) => {
+    const dynamic = await getDynamic(endpointURL);
+    const notebook = await getNotebook(endpointURL);
 
     if (dynamic === undefined && notebook === undefined) {
         return undefined;
@@ -45,9 +48,11 @@ export const getDynamic = async (endpointURL) => {
                 const record = snap.data();
                 cacheFirestore[endpointURL] = record && {
                     modifiers: [],
+                    reusable: false,
                     ...record,
                     secrets: Object.keys(record.secrets || {})
                 };
+                if (record) invalidationCallback(record.namespace, endpointURL);
                 if (!config) resolve(cacheFirestore[endpointURL]);
             })
         });

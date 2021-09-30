@@ -50,6 +50,14 @@ app.use(compression());
 import {checkRate, BURSTABLE_RATE_LIMIT, limiter} from './limits.mjs';
 
 
+// Periodic tasks
+browsercache.scheduleCleanup();
+
+// Cross cache tasks
+configcache.setInvalidationCallback((namespace, endpointURL) => {
+    browsercache.invalidate(namespace, endpointURL);
+});
+
 const localmode = process.env.LOCAL || false;
 
 // Start loading secrets ASAP in the background
@@ -74,10 +82,12 @@ app.all(routes.pattern, async (req, res) => {
 });
 
 // Handler for observablehq.com notebooks
+const responses = [];
 app.all(observable.pattern, [
-    async (req, res, next) => {    
+    async (req, res, next) => {  
+        req.id = Math.random().toString(36).substr(2, 9);  
         req.requestConfig = observable.decode(req);
-        req.cachedConfig = await configcache.get(req.requestConfig.baseURL);
+        req.cachedConfig = await configcache.get(req.requestConfig.endpointURL);
         next()
     },
     loopbreak,
@@ -113,7 +123,8 @@ app.all(observable.pattern, [
         const shard = req.cachedConfig?.namespace || req.requestConfig.namespace || notebookURL;
         const closePage = async () => {
             if (page && !localmode && !page.isClosed()) {
-                await page.close(); page = undefined;
+                if (!req?.cachedConfig?.reusable) await page.close();
+                page = undefined;
 
                 if (shard === notebookURL) {
                     // can't close might be used by a parrallel request
@@ -125,18 +136,22 @@ app.all(observable.pattern, [
         }
 
         try {
-            page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
+            responses[req.id] = res;
+            let pageReused = false;
+            let page = undefined;
 
             // Tidy page on cancelled request
-            req.on('close', closePage);
-
-            await page.evaluateOnNewDocument((notebook) => {
-                window["@endpointservices.context"] = {
-                    serverless: true,
-                    notebook: notebook,
-                    secrets: {}
-                };
-            }, req.requestConfig.notebook);
+            if (!req.cachedConfig || !req.cachedConfig.reusable) {
+                page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
+                req.on('close', closePage);
+            } else {
+                page = await browsercache.getPage(shard, notebookURL);
+                if (!page) {
+                    page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
+                } else {
+                    pageReused = true
+                }
+            }
 
             if (req.cachedConfig) {
                 await page.setUserAgent(useragent.encode({
@@ -145,17 +160,48 @@ app.all(observable.pattern, [
                 }));
             }
             
+            if (!pageReused) {
+                await page.evaluateOnNewDocument((notebook) => {
+                    window["@endpointservices.context"] = {
+                        serverless: true,
+                        notebook: notebook,
+                        secrets: {}
+                    };
+                }, req.requestConfig.notebook);
+                // Wire up logging
+                page.on('console', message => logger.log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`))
+                    .on('pageerror', ({ message }) => logger.log(message))
+                    .on('requestfailed', request => logger.log(`${request.failure().errorText} ${request.url()}`));
+                
+                // Wire up response channel
+                await page.exposeFunction(
+                    '@endpointservices.callback',
+                    (reqId, operation, args) => {
+                        if (!responses[reqId]) {
+                            console.error("No response found for reqId: " + reqId);
+                            return new Error("No response found");
+                        } else if (operation === 'header') {
+                            responses[reqId].header(args[0], args[1]);
+                        } else if (operation === 'status') {
+                            responses[reqId].status(args[0]);
+                        } else if (operation === 'write') {
+                            return new Promise((resolve, reject) => {
+                                let chunk = args[0];
+                                if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
+                                    chunk = Buffer.from(chunk.value, 'base64')
+                                } 
+                                responses[reqId].write(chunk, (err) => err ? reject(err): resolve())
+                            })
+                        };
+                    }
+                );
 
-            // Wire up logging
-            page.on('console', message => logger.log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`))
-                .on('pageerror', ({ message }) => logger.log(message))
-                .on('requestfailed', request => logger.log(`${request.failure().errorText} ${request.url()}`))
-
-            console.log(`Fetching: ${notebookURL}`);
-            const pageResult = await page.goto(notebookURL, { waitUntil: 'domcontentloaded' })
-            if (!pageResult.ok()) {
-                res.status(pageResult.status()).send(pageResult.statusText());
-                return;
+                console.log(`Fetching: ${notebookURL}`);
+                const pageResult = await page.goto(notebookURL, { waitUntil: 'domcontentloaded' })
+                if (!pageResult.ok()) {
+                    res.status(pageResult.status()).send(pageResult.statusText());
+                    return;
+                }
             }
 
             function waitForFrame() {
@@ -180,14 +226,17 @@ app.all(observable.pattern, [
             // e.g. https://tomlarkworthy.static.observableusercontent.com/worker/embedworker.7fea46af439a70e4d3d6c96e0dfa09953c430187dd07bc9aa6b9050a6691721a.html?cell=buggy_rem
             const namespace = iframe.url().match(/^https:\/\/([^.]*)/)[1];
 
-            logger.initialize({
-                project_id: process.env.GOOGLE_CLOUD_PROJECT,
-                location: undefined,
-                namespace,
-                notebook: req.requestConfig.notebook,
-                job: req.requestConfig.baseURL,
-                task_id: Math.random().toString(36).substr(2, 9)
-            });
+            if (!pageReused) {
+                logger.initialize({
+                    project_id: process.env.GOOGLE_CLOUD_PROJECT,
+                    location: undefined,
+                    namespace,
+                    notebook: req.requestConfig.notebook,
+                    job: req.requestConfig.endpointURL,
+                    task_id: req.id
+                });
+            }
+            
 
             const deploymentHandle = await iframe.waitForFunction(
                 (name) => window["deployments"] && window["deployments"][name],
@@ -202,15 +251,16 @@ app.all(observable.pattern, [
             
 
             // Update cache so we always have latest
-            await configcache.setNotebook(req.requestConfig.baseURL, {
+            await configcache.setNotebook(req.requestConfig.endpointURL, {
                 modifiers: deploymentConfig.modifiers || [],
                 secrets: deploymentConfig.secrets || [],
+                reusable: deploymentConfig.reusable || false,
                 namespace
             });
 
             // This will be cached, and drive restart so be very carful as if it is not stable
             // we will have loops
-            req.config = await configcache.get(req.requestConfig.baseURL);
+            req.config = await configcache.get(req.requestConfig.endpointURL);
 
             // Now we decide to restart or not
             // If the modifiers change we just need to rerun the loopbreaking logic
@@ -260,39 +310,12 @@ app.all(observable.pattern, [
 
             const cellReq = observable.createCellRequest(req);
 
-            const pHeader = page.exposeFunction(
-                '@endpointservices.header',
-                (header, value) => {
-                    res.header(header, value)
-                }
-            );
-
-            const pStatus = page.exposeFunction(
-                '@endpointservices.status',
-                (status) => {
-                    res.status(status)
-                }
-            );
-
-            const pWrite = page.exposeFunction(
-                '@endpointservices.write',
-                (chunk) => new Promise((resolve, reject) => {
-                    if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
-                        chunk = Buffer.from(chunk.value, 'base64')
-                    } 
-                    res.write(chunk, (err) => err ? reject(err): resolve())
-                })  
-            );
-            await Promise.all([pHeader, pStatus, pWrite]);
             const result = await iframe.evaluate(
                 (req, name, context) => window["deployments"][name](req, context),
                 cellReq, req.requestConfig.name, context
             );    
             
-            if (!localmode) {
-                await page.close();
-                page = undefined;
-            }
+            closePage();
 
             const millis = Date.now() - t_start;
             
@@ -335,6 +358,8 @@ app.all(observable.pattern, [
                 duration: millis
             });
             res.status(status).send(err.message);
+        } finally {
+            delete responses[req.id];
         }
     }
 ]);
@@ -352,7 +377,7 @@ app.use('(/regions/:region)?/puppeteer', async (req, res, next) => {
 app.use('(/regions/:region)?/puppeteer', puppeteerProxy);
 
 
-app.use('(/regions/:region)?/.stats', browsercache.stats);
+app.use('(/regions/:region)?/.stats', browsercache.statsHandler);
 
 
 app.use((req, res) => {

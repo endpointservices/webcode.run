@@ -4,16 +4,15 @@ import * as observable from './observable.mjs';
 export const setDebugFirebase = (firebase) => debugFirebase = firebase;
 
 export async function debuggerMiddleware(req, res, next) {
-
     if (req.cachedConfig?.debugger?.path) {
+        // TODO, this watcher is introducing 70ms of latency, we should really just track the status with the dynamic config
         const status = await debugFirebase.database().ref(req.cachedConfig.debugger.path + "/status").once('value');
         if (status.val() === 'online') {
             // todo unsubscribe when status leaves offline
             
             console.log("Tunneling request over", req.cachedConfig.debugger.path)
             const cellReq = observable.createCellRequest(req);
-            const id = Math.random().toString(36).substr(2, 9);
-
+            const id = req.id;
 
             // SECURITY: Now we ensure all the secrets resolve and they are keyed by the domain being executed
             const namespace = req.cachedConfig.namespace;
@@ -73,6 +72,7 @@ export async function debuggerMiddleware(req, res, next) {
             });
 
         } else {
+            console.log("Debugging receiver is not online");
             next();
         }
     } else {
