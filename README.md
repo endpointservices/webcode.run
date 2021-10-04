@@ -1,6 +1,6 @@
-# serverlesscells
+# webcode.run runtime
 
-Runtime for https://observablehq.com/@endpointservices/serverless-cells, a HTTP Functions-as-a-service environment for Observable Notebooks.
+Runtime for https://observablehq.com/@endpointservices/webcode, a HTTP Functions-as-a-service environment for Observable Notebooks.
 
 Allows Observablehq.com to be used to write backend code. Secrets and logs supported, Zapier and Oauth 2.0 see https://observablehq.com/collection/@endpointservices/services
 
