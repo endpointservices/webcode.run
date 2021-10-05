@@ -41,9 +41,9 @@ test('/observablehq.com/@endpointservices/d/72412b3f07ab976f@34 responds to GET'
         .expect(200, "secretadmin@endpointservice.iam.gserviceaccount.com");
 }, 30000);
 
-test('/observablehq.com/@endpointservices/serverless-cell-tests;example_getContext responds to GET', async () => {
+test('/observablehq.com/@endpointservices/serverless-cell-testsexample_getContext responds to GET', async () => {
     await supertest.default(app)
-        .get('/observablehq.com/@endpointservices/serverless-cell-tests;example_getContext')
+        .get('/observablehq.com/@endpointservices/serverless-cell-tests%3Bexample_getContext')
         .expect(200, {
             "serverless":true,
             "namespace":"endpointservices",

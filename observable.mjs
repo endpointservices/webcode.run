@@ -1,5 +1,5 @@
 
-export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/:notebook))(@(:version))?(;(:name))?(/:path(*))?';
+export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/:notebook))(@(:version))?((;|%3B)(:name))?(/:path(*))?';
 export function decode(req) {
 
     const versionSuffix = req.params.version ? `@${req.params.version}` : ''
