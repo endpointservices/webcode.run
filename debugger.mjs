@@ -56,7 +56,7 @@ export async function debuggerMiddleware(req, res, next) {
 
             debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id + "/response").on('value', snap => {
                 if (snap.val() === null) return; // ignore first null result
-                const result = snap.val();
+                const result = JSON.parse(snap.val());
 
                 result.json ? res.json(result.json) : null;
 
