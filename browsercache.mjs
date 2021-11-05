@@ -53,6 +53,7 @@ export async function newPage(shard, args = []) {
                     '--mute-audio',
                     '--disable-dev-shm-usage',
                     '--disable-web-security', // Turn off CORS
+                    '--allow-running-insecure-content', // Allow access to http sites too
                     localmode ? '--disable-features=site-per-process': '', // Helps keep iframe detection working https://github.com/puppeteer/puppeteer/issues/5123#issuecomment-559158303 when using devtools
                     `--user-agent=${useragent.base}` // We set it on a per page but incase we forget we set it here too
                 ]
