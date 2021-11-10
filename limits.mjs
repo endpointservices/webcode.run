@@ -6,9 +6,17 @@ const rate_estimator = await module.value("rate_estimator");
 
 const limiters = {};
 
-export const BURSTABLE_RATE_LIMIT = {
+export const REQUEST_RATE_LIMIT = {
     fastConverge: false, // So burst are allowed
-    limit_hz: 2,         // Long term max rate
+    limit_hz: 20,        // Long term max rate
+    forgetFactor: 0.45,  // 20 request needed to have problems
+    initial_rate: 0,
+};
+
+
+export const OBSERVABLE_RATE_LIMIT = {
+    fastConverge: false, // So burst are allowed
+    limit_hz: 2,        // Long term max rate
     forgetFactor: 0.45,  // 20 request needed to have problems
     initial_rate: 0,
 };
