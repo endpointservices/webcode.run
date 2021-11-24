@@ -85,8 +85,9 @@ export async function newPage(shard, args = []) {
 export const getPage = async (shard, url) => {
     const entry = browsers[shard];
     if (!entry) return undefined;
+    entry.lastUsed = Date.now();
     const pages = await (await browsers[shard].browser).pages();
-    return pages.find((page => page.url() === url));
+    return pages.find((page => page.url() === url && !page.isClosed()));
 }
 
 export async function shutdown () {
@@ -103,6 +104,7 @@ export const invalidate = async (namespace, endpointURL) => {
     pages.forEach(page => {
         const embedURL = page.url()
         if (observable.canHost(embedURL, endpointURL) && !page.isClosed()) {
+            console.log("Invalidated page: ", page.url());
             page.close();
         }
     })
