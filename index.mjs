@@ -16,6 +16,7 @@ import {Logger} from './logging.mjs';
 import {default as compression} from 'compression';
 import {puppeteerProxy} from './puppeteer.mjs';
 import * as _ from 'lodash-es';
+import createError from "http-errors";
 
 const firebase = admin.initializeApp({
     apiKey: "AIzaSyD882c8YEgeYpNkX01fhpUDfioWl_ETQyQ",
@@ -47,7 +48,7 @@ app.use(bodyParser.raw({type: '*/*', limit: '50mb'})); // This means we buffer t
 app.use(compression());
 
 // RATE LIMITERS
-import {checkRate, BURSTABLE_RATE_LIMIT, limiter} from './limits.mjs';
+import {checkRate, REQUEST_RATE_LIMIT, OBSERVABLE_RATE_LIMIT, requestLimiter} from './limits.mjs';
 
 
 // Periodic tasks
@@ -91,7 +92,7 @@ app.all(observable.pattern, [
         next()
     },
     loopbreak,
-    limiter,
+    requestLimiter,
     async (req, res, next) => { 
         if (req.cachedConfig) {
             req.pendingSecrets = (req.cachedConfig.secrets || []).reduce(
@@ -160,6 +161,12 @@ app.all(observable.pattern, [
             }
             
             if (!pageReused) {
+                try {
+                    await checkRate(shard, OBSERVABLE_RATE_LIMIT);
+                } catch (err) {
+                    throw createError(429, "Shared OBSERVABLE_RATE_LIMIT exceeded, try the resuable flag");
+                }
+
                 await page.evaluateOnNewDocument((notebook) => {
                     window["@endpointservices.context"] = {
                         serverless: true,
@@ -338,14 +345,13 @@ app.all(observable.pattern, [
             });
 
         } catch (err) {
-            let status;
             if (err.message.startsWith("waiting for function failed")) {
                 err.message = `Deployment '${req.requestConfig.name}' not found, did you remember to publish your notebook, or is your deploy function slow?`
-                status = 404;
-            } else {
-                console.error(err);
-                status = err.status || 500;
+                err.status = 404;
+            } else if (!err.status) {
+                err.status = err.status || 500; // Default to 500 error code
             }
+            console.error(err);
 
             closePage()
             const millis = Date.now() - t_start;
@@ -353,10 +359,10 @@ app.all(observable.pattern, [
             logger.log({
                 url: req.url,
                 method: req.method,
-                status,
+                status: err.status,
                 duration: millis
             });
-            res.status(status).send(err.message);
+            res.status(err.status).send(err.message);
         } finally {
             delete responses[req.id];
         }

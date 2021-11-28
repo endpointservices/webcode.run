@@ -1,58 +1,46 @@
-import notebook from '@tomlarkworthy/rate-estimation-min'
-import Observable from '@observablehq/runtime'
-
-const module = new Observable.Runtime().module(notebook);
-const rate_estimator = await module.value("rate_estimator");
+import createError from "http-errors";
+import LeakyBucket from 'leaky-bucket';
 
 const limiters = {};
+const configs = [];
 
-export const REQUEST_RATE_LIMIT = {
-    fastConverge: false, // So burst are allowed
-    limit_hz: 20,        // Long term max rate
-    forgetFactor: 0.45,  // 20 request needed to have problems
-    initial_rate: 0,
+export const REQUEST_RATE_LIMIT = 0;
+configs[REQUEST_RATE_LIMIT] = {
+    capacity: 20 * 5,
+    interval: 1 * 5,
 };
 
-
-export const OBSERVABLE_RATE_LIMIT = {
-    fastConverge: false, // So burst are allowed
-    limit_hz: 2,        // Long term max rate
-    forgetFactor: 0.45,  // 20 request needed to have problems
-    initial_rate: 0,
+export const OBSERVABLE_RATE_LIMIT = 1;
+configs[OBSERVABLE_RATE_LIMIT] = {
+    capacity: 2 * 10,
+    interval: 1 * 10,
 };
 
-export function checkRate(id, config, now_secs) {
-    if (!limiters[id]) {
-        limiters[id] = rate_estimator(config);
+export async function checkRate(id, config) {
+    if (!limiters[config]) limiters[config] = {};
+    if (!limiters[config][id]) {
+        limiters[config][id] = new LeakyBucket(configs[config]);
     }
-    const limiter = limiters[id];
+    const limiter = limiters[config][id];
 
     // check
-    const limiterAfterEvent = limiter.observeAtTime(now_secs);
-    if (limiterAfterEvent.estimateRateAtTime(now_secs) > config.limit_hz) {
-        // Fail
-        throw new Error("Rate limit")
-    } else {
-        limiters[id] = limiterAfterEvent
-        return true;
-    }
+    await limiter.throttle();
+    return true;
 }
 
-export function limiter(req, res, next) {
+export async function requestLimiter(req, res, next) {
     try {
-        checkRate(req.ip,  BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
+        await checkRate(req.ip,  REQUEST_RATE_LIMIT);
     } catch (err) {
         console.log("IP Burstable limit hit");
-        res.header('Retry-After', '2')
         return res.status(429).send("Burstable rate limit of 1 request per second per IP exceeded");
     }
 
     try {
-        checkRate(req.url, BURSTABLE_RATE_LIMIT, Date.now() * 0.001);
+        await checkRate(req.url, REQUEST_RATE_LIMIT);
     } catch (err) {
         console.log("URL Burstable limit hit");
-        res.header('Retry-After', '2')
-        return res.status(429).send("Burstable rate limit of 1 request per second per IP exceeded");
+        return res.status(429).send("Burstable rate limit of 1 request per second per URL exceeded");
     }
     next()
 }

@@ -1,22 +1,22 @@
-import {checkRate, BURSTABLE_RATE_LIMIT} from './limits.mjs';
+import {checkRate, OBSERVABLE_RATE_LIMIT, REQUEST_RATE_LIMIT} from './limits.mjs';
+import createError from "http-errors";
 
-test('check fastconverge fails fast', () => {
-  expect(checkRate("f1", {
-    fastConverge: true,
-    limit: 0.01
-  }, 1)).toBe(true)
+test('createError works', () => {
+  expect(() => {
+    throw createError(400, "No");
+  }).toThrow()
+})
 
-  expect(() => checkRate("f1", {
-    fastConverge: true,
-    limit_hz: 0.01
-  }, 1)).toThrow();
+test('REQUEST_RATE_LIMIT enabled after burst of 100', async () => {
+  for (let i = 0; i < 100; i++) {
+    expect(await checkRate("R1", REQUEST_RATE_LIMIT)).toBe(true)
+  }
+  expect(checkRate("R1", REQUEST_RATE_LIMIT)).rejects.toThrow()
 });
 
-test('OBSERVABLE_RATE_LIMIT enabled after burst of 10', () => {
+test('OBSERVABLE_RATE_LIMIT enabled after burst of 20', async () => {
   for (let i = 0; i < 20; i++) {
-    expect(checkRate("R1", OBSERVABLE_RATE_LIMIT, 0)).toBe(true)
+    expect(await checkRate("R1", OBSERVABLE_RATE_LIMIT)).toBe(true)
   }
-  expect(() => checkRate("R1", OBSERVABLE_RATE_LIMIT, 0)).toThrow()
-
-  expect(checkRate("R1", OBSERVABLE_RATE_LIMIT, 1.1)).toBe(true)
+  expect(checkRate("R1", OBSERVABLE_RATE_LIMIT)).rejects.toThrow()
 });
