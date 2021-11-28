@@ -14,6 +14,8 @@ export const setNotebook = async (endpointURL, config) => cache[endpointURL] = c
 export const getNotebook = async (endpointURL) => cache[endpointURL];
 
 
+
+// Todo race when two request come in for same cache
 export const get = async (endpointURL) => {
     const dynamic = await getDynamic(endpointURL);
     const notebook = await getNotebook(endpointURL);
@@ -41,8 +43,8 @@ export const getDynamic = async (endpointURL) => {
         const configDoc = firestore.doc(
             `/services/http/endpoints/${encodeURIComponent(endpointURL)}`
         );
-        let config = undefined;
-        config = await new Promise(resolve => {
+        let hasResolved = false;
+        cacheFirestore[endpointURL] = new Promise(resolve => {
             // update cache on change
             configDoc.onSnapshot(snap => {
                 const record = snap.data();
@@ -53,9 +55,12 @@ export const getDynamic = async (endpointURL) => {
                     secrets: Object.keys(record.secrets || {})
                 };
                 if (record) invalidationCallback(record.namespace, endpointURL);
-                if (!config) resolve(cacheFirestore[endpointURL]);
+                if (!hasResolved) {
+                    hasResolved = true;
+                    resolve(cacheFirestore[endpointURL]);
+                }
             })
         });
-        return config;
     }
+    return cacheFirestore[endpointURL];
 }
