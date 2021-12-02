@@ -48,7 +48,7 @@ app.use(bodyParser.raw({type: '*/*', limit: '50mb'})); // This means we buffer t
 app.use(compression());
 
 // RATE LIMITERS
-import {checkRate, REQUEST_RATE_LIMIT, OBSERVABLE_RATE_LIMIT, requestLimiter} from './limits.mjs';
+import {checkRate, OBSERVABLE_RATE_LIMIT, requestLimiter} from './limits.mjs';
 
 
 // Periodic tasks
@@ -140,17 +140,14 @@ app.all(observable.pattern, [
             responses[req.id] = res;
             let pageReused = false;
 
-            // Tidy page on cancelled request
             if (!req.cachedConfig || !req.cachedConfig.reusable) {
                 page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
+                // Tidy page on cancelled request
                 req.on('close', closePage);
             } else {
-                page = await browsercache.getPage(shard, notebookURL);
-                if (!page) {
-                    page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
-                } else {
-                    pageReused = true
-                }
+                page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888'], notebookURL);
+                pageReused = page.setup !== undefined;
+                if (!page.setup) page.setup = true;
             }
 
             if (req.cachedConfig) {

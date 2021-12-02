@@ -13,9 +13,6 @@ export const setInvalidationCallback = (callback) => invalidationCallback = call
 export const setNotebook = async (endpointURL, config) => cache[endpointURL] = config;
 export const getNotebook = async (endpointURL) => cache[endpointURL];
 
-
-
-// Todo race when two request come in for same cache
 export const get = async (endpointURL) => {
     const dynamic = await getDynamic(endpointURL);
     const notebook = await getNotebook(endpointURL);
@@ -50,7 +47,7 @@ export const getDynamic = async (endpointURL) => {
                 const record = snap.data();
                 cacheFirestore[endpointURL] = record && {
                     modifiers: [],
-                    reusable: false,
+                    reusable: true,
                     ...record,
                     secrets: Object.keys(record.secrets || {})
                 };

@@ -5,7 +5,7 @@ import * as os from 'os';
 import {promiseRecursive} from './utils.mjs';
 const localmode = process.env.LOCAL || false;
 
-const browsers = {}; // Cache of promises
+const browsers = {}; // Cache of browser entries
 
 const CLEANUP_CHECK_PERIOD_HOURS = 2;
 const BROWSER_IDLE_CLEANUP_HOURS = 4;
@@ -33,11 +33,12 @@ export function scheduleCleanup() {
     setTimeout(scheduleCleanup, CLEANUP_CHECK_PERIOD_HOURS * 60 * 60 * 1000);
 }
 
-export async function newPage(shard, args = []) {
+export async function newPage(shard, args = [], pageURL) {
     if (browsers[shard] === undefined) {
         console.log(`Launching new browser on shard ${shard}`);
         browsers[shard] = {
             lastUsed: Date.now(),
+            pages: {},
             browser: puppeteer.launch({ 
                 ...(process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD && {executablePath: 'google-chrome-stable'}),
                 devtools: localmode,
@@ -61,33 +62,42 @@ export async function newPage(shard, args = []) {
         };
     }
 
-    const entry = browsers[shard];
-    entry.lastUsed = Date.now();
-    const page = await (await entry.browser).newPage();
-    
-    await page.setRequestInterception(true)
-    
-    page.on('request', interceptedRequest => {
-        const hostname = new URL(interceptedRequest.url()).hostname;
-        if (hostname.endsWith(".internal") || // Prevent access to e.g. Metadata server
-            hostname === "127.0.0.1" ||
-            hostname === "0.0.0.0") {
-            interceptedRequest.abort()
-        } else {
-            // Note we can't mutate fetch requests until https://github.com/puppeteer/puppeteer/issues/2781
-            interceptedRequest.continue()
+    const browserEntry = browsers[shard];
+    browserEntry.lastUsed = Date.now();
+
+    if (pageURL && browserEntry.pages[pageURL]) {
+        console.log("Reusing page", pageURL)
+        const pageEntry = browserEntry.pages[pageURL];
+        pageEntry.lastUsed = Date.now();
+        return pageEntry.pagePromise;
+    } else {
+        const pagePromise = new Promise(async (resolve) => {
+            console.log("Opening page for", pageURL);
+            const browser = await browserEntry.browser;
+            const page = await browser.newPage();
+            await page.setRequestInterception(true)
+            
+            page.on('request', interceptedRequest => {
+                const hostname = new URL(interceptedRequest.url()).hostname;
+                if (hostname.endsWith(".internal") || // Prevent access to e.g. Metadata server
+                    hostname === "127.0.0.1" ||
+                    hostname === "0.0.0.0") {
+                    interceptedRequest.abort()
+                } else {
+                    // Note we can't mutate fetch requests until https://github.com/puppeteer/puppeteer/issues/2781
+                    interceptedRequest.continue()
+                }
+            });
+            resolve(page);  
+        });
+        if (pageURL) {
+            browserEntry.pages[pageURL] = {
+                lastUsed: Date.now(),
+                pagePromise: pagePromise
+            };
         }
-    });
-
-    return page;
-}
-
-export const getPage = async (shard, url) => {
-    const entry = browsers[shard];
-    if (!entry) return undefined;
-    entry.lastUsed = Date.now();
-    const pages = await (await browsers[shard].browser).pages();
-    return pages.find((page => page.url() === url && !page.isClosed()));
+        return pagePromise;
+    }
 }
 
 export async function shutdown () {
@@ -100,11 +110,12 @@ export const invalidate = async (namespace, endpointURL) => {
     const entry = browsers[namespace];
     if (!entry) return;
     const browser = await entry.browser;
-    const pages = await browser.pages();
-    pages.forEach(page => {
-        const embedURL = page.url()
-        if (observable.canHost(embedURL, endpointURL) && !page.isClosed()) {
-            console.log("Invalidated page: ", page.url());
+    Object.values(entry.pages).forEach(async (pageEntry) => {
+        const page = await pageEntry.pagePromise;
+        const pageURL = page.url()
+        if (observable.canHost(pageURL, endpointURL) && !page.isClosed()) {
+            console.log("Invalidating page", pageURL, "due to", endpointURL);
+            delete entry.pages[pageURL]
             page.close();
         }
     })
@@ -116,15 +127,24 @@ export const stats = async () => ({
         totalmem: os.totalmem(),
         freemem: os.freemem(),
         browsers: {
-            ...Object.fromEntries(await promiseRecursive(Object.keys(browsers).map(async (namespace) => 
-                [namespace, {
-                    pages: await promiseRecursive((await (await browsers[namespace].browser).pages()).map(async (page) => ({
-                        title: await page.title(),
-                        url: page.url(),
-                        metrics: await page.metrics(),
-                    })))
-                }]
-            )))
+            ...Object.fromEntries(await promiseRecursive(Object.keys(browsers).map(async (namespace) => {
+                const browser = await browsers[namespace].browser;
+                try {
+                    const page = await (browser).pages();
+                    return [namespace, {
+                        pages: await promiseRecursive((pages).map(async (page) => ({
+                            title: await page.title(),
+                            url: page.url(),
+                            metrics: await page.metrics(),
+                        })))
+                    }];
+                } catch (err) {
+                    console.error(err);
+                    console.log("Error duing stats, so purging", namespace);
+                    delete browsers[namespace];
+                    browser.close();
+                }
+            })))
         }
     });
 
