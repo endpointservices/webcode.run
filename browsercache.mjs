@@ -128,9 +128,10 @@ export const stats = async () => ({
         freemem: os.freemem(),
         browsers: {
             ...Object.fromEntries(await promiseRecursive(Object.keys(browsers).map(async (namespace) => {
-                const browser = await browsers[namespace].browser;
+                const entry = browsers[namespace];
+                const browser = await entry.browser;
                 try {
-                    const page = await (browser).pages();
+                    const pages = await browser.pages();
                     return [namespace, {
                         pages: await promiseRecursive((pages).map(async (page) => ({
                             title: await page.title(),
