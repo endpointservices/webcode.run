@@ -387,7 +387,7 @@ app.use('(/regions/:region)?/.stats', browsercache.statsHandler);
 
 
 app.use((req, res) => {
-    res.redirect(302, "https://observablehq.com/@tomlarkworthy/webcode");
+    res.redirect(302, "https://observablehq.com/@endpointservices/webcode");
 });
 
 app.server = app.listen(process.env.PORT || 8080);
