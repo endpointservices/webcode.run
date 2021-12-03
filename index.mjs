@@ -17,6 +17,7 @@ import {default as compression} from 'compression';
 import {puppeteerProxy} from './puppeteer.mjs';
 import * as _ from 'lodash-es';
 import createError from "http-errors";
+import {installRtdbRedirect} from './rtdb.mjs';
 
 const firebase = admin.initializeApp({
     apiKey: "AIzaSyD882c8YEgeYpNkX01fhpUDfioWl_ETQyQ",
@@ -81,6 +82,9 @@ app.all(routes.pattern, async (req, res) => {
     req.url = `/observablehq.com/${shard};${deploy}${userURL}`;
     app.handle(req, res);
 });
+
+// Adapter to make Realtime Database requests get handled
+installRtdbRedirect(app);
 
 // Handler for observablehq.com notebooks
 const responses = [];
