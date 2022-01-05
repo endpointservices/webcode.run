@@ -109,7 +109,6 @@ export async function shutdown () {
 export const invalidate = async (namespace, endpointURL) => {
     const entry = browsers[namespace];
     if (!entry) return;
-    const browser = await entry.browser;
     Object.values(entry.pages).forEach(async (pageEntry) => {
         const page = await pageEntry.pagePromise;
         const pageURL = page.url()

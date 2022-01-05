@@ -1,12 +1,6 @@
 
 export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/:notebook))(@(:version))?((;|%3B)(:name))?(/:path(*))?';
 export function decode(req) {
-
-    const versionSuffix = req.params.version ? `@${req.params.version}` : ''
-    const notebookURL = (req.params.id)
-        ? `https://observablehq.com/embed/${req.params.id}${versionSuffix}`
-        : `https://observablehq.com/embed/@${req.params.owner}/${req.params.notebook}${versionSuffix}`;
-
     const notebook = req.params.id ? `d/${req.params.id}` : req.params.notebook
     let userURL = "/" + (req.params.path || '');
     const name = req.params.name || 'default';
@@ -18,7 +12,6 @@ export function decode(req) {
         `${req.params.name ? `;${req.params.name}` : ``}`;
 
     return {
-        notebookURL: notebookURL,
         notebook,
         path: userURL,
         name: name,
@@ -28,7 +21,19 @@ export function decode(req) {
     };
 }
 
-// Could the webbrowser page be running the supplied endpoitn URL?
+export function notebookURL(req, {api_key = undefined} = {}) {
+    const versionSuffix = req.params.version ? `@${req.params.version}` : '';
+    const local = req.hostname === 'localhost';
+    return api_key ? 
+        (req.params.id)
+        ? `https://webcode.run/observablehq.com/@endpointservices/embed/d/${req.params.id}${versionSuffix}?api_key=${api_key}`
+        : `https://webcode.run/observablehq.com/@endpointservices/embed/@${req.params.owner}/${req.params.notebook}${versionSuffix}?api_key=${api_key}`:
+        (req.params.id)
+        ? `https://observablehq.com/embed/${req.params.id}${versionSuffix}`
+        : `https://observablehq.com/embed/@${req.params.owner}/${req.params.notebook}${versionSuffix}`;
+}
+
+// Could the webbrowser page be running the supplied endpoint URL?
 export function canHost(embedURL, endpointURL) {
     return endpointURL.replace('/observablehq.com/', '').includes(embedURL.replace('https://observablehq.com/embed/', '')) 
 }

@@ -23,6 +23,8 @@ export const loopbreak = (req, res, next) => {
             // Terminal cells can be called by anyone, but then they cannot propogate
         } else if (isExternalUA && (isExternal || isOrchestrator)) {
             // External Serverless cells can be called by external UAs
+        } else if (req.url.startsWith('/observablehq.com/@endpointservices/embed/')) {
+            // All requests to embed are allowed
         } else {
             const message = `Unexpected combination ${req.get('user-agent')} ${isTerminal} ${isOrchestrator} ${isExternal} ${JSON.stringify(req.cachedConfig)}`
             console.log(message);

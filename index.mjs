@@ -124,7 +124,7 @@ app.all(observable.pattern, [
 
         const t_start = Date.now();
 
-        const notebookURL = req.requestConfig.notebookURL;
+        const notebookURL = observable.notebookURL(req, req.cachedConfig);
         const shard = req.cachedConfig?.namespace || req.requestConfig.namespace || notebookURL;
         const closePage = async () => {
             if (page && !localmode && !page.isClosed()) {
@@ -204,11 +204,15 @@ app.all(observable.pattern, [
                 );
 
                 console.log(`Fetching: ${notebookURL}`);
-                const pageResult = await page.goto(notebookURL, { waitUntil: 'domcontentloaded' })
+                const pageResult = await page.goto(notebookURL, { waitUntil: 'domcontentloaded' });
                 if (!pageResult.ok()) {
                     res.status(pageResult.status()).send(pageResult.statusText());
                     return;
                 }
+
+                if (pageResult.headers()['login']) {
+                    page.namespace = pageResult.headers()['login'];
+                };
             }
 
             function waitForFrame() {
@@ -228,10 +232,17 @@ app.all(observable.pattern, [
                         setTimeout(checkFrame, 25)
                 }
             }
-            const iframe = await waitForFrame();
-            // iframe.url()
-            // e.g. https://tomlarkworthy.static.observableusercontent.com/worker/embedworker.7fea46af439a70e4d3d6c96e0dfa09953c430187dd07bc9aa6b9050a6691721a.html?cell=buggy_rem
-            const namespace = iframe.url().match(/^https:\/\/([^.]*)/)[1];
+            let namespace; 
+            let executionContext;
+            if (page.namespace) {
+                namespace = page.namespace;
+                executionContext = page;
+            } else {
+                executionContext = await waitForFrame();
+                // iframe.url()
+                // e.g. https://tomlarkworthy.static.observableusercontent.com/worker/embedworker.7fea46af439a70e4d3d6c96e0dfa09953c430187dd07bc9aa6b9050a6691721a.html?cell=buggy_rem
+                namespace = executionContext.url().match(/^https:\/\/([^.]*)/)[1];
+            }
 
             if (!pageReused) {
                 logger.initialize({
@@ -245,13 +256,13 @@ app.all(observable.pattern, [
             }
             
 
-            const deploymentHandle = await iframe.waitForFunction(
+            const deploymentHandle = await executionContext.waitForFunction(
                 (name) => window["deployments"] && window["deployments"][name],
                 {
                     timeout: 20000
                 }, req.requestConfig.name);
 
-            const deploymentConfig = await iframe.evaluate(x => {
+            const deploymentConfig = await executionContext.evaluate(x => {
                 return x.config;
               }, deploymentHandle
             );   
@@ -317,7 +328,7 @@ app.all(observable.pattern, [
 
             const cellReq = observable.createCellRequest(req);
 
-            const result = await iframe.evaluate(
+            const result = await executionContext.evaluate(
                 (req, name, context) => window["deployments"][name](req, context),
                 cellReq, req.requestConfig.name, context
             );    

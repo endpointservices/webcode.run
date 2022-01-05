@@ -75,6 +75,15 @@ test('/observablehq.com/@endpointservices/serverless-cell-tests;contextFields re
 }, 30000);
 
 
+// PRIVATE API_KEY ACCESS TEST
+test('Can access private team APIs', async () => {
+    await supertest.default(app)
+        .put('/observablehq.com/d/8bd836d57cc514d8')
+        .send('cool')
+        .expect(200, "cool");
+}, 30000);
+
+
 
 afterAll(async () => {
     await shutdown();

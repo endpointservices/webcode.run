@@ -16,130 +16,149 @@ function params(url) {
 
 test('Observable decode, default name, no path', () => {
     const url = ("/observablehq.com/@tomlarkworthy/echo-server")
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server",
-        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "notebook":"echo-server",
         "path": "/",
         "name": "default",
         "namespace": "tomlarkworthy"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server');
 });
 
 
 test('Observable decode, default name, with path', () => {
     const url = "/observablehq.com/@tomlarkworthy/echo-server/mypath"
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server",
-        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/mypath",
         "notebook":"echo-server",
         "name": "default",
         "namespace": "tomlarkworthy"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server');
 });
 
 
 test('Observable decode, named cell, no path', () => {
     const url = ("/observablehq.com/@tomlarkworthy/echo-server;ping")
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
-        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/",
         "notebook":"echo-server",
         "name": "ping",
         "namespace": "tomlarkworthy"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server');
 });
 
 
 
 test('Observable decode, named cell, with path', () => {
     const url = ("/observablehq.com/@tomlarkworthy/echo-server;ping/mypath")
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server;ping",
-        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/mypath",
         "notebook":"echo-server",
         "name": "ping",
         "namespace": "tomlarkworthy"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server');
 });
 
 
 test('Observable decode, link shared, named cell, with path', () => {
-    const url = ("/observablehq.com/d/a1df3130b62f47ef;ping/mypath")
-    expect(observable.decode({
+    const url = ("/observablehq.com/d/a1df3130b62f47ef;ping/mypath");
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/d/a1df3130b62f47ef;ping",
-        "notebookURL": "https://observablehq.com/embed/a1df3130b62f47ef",
         "path": "/mypath",
         "notebook":"d/a1df3130b62f47ef",
         "name": "ping"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/a1df3130b62f47ef')
 });
 
 
 test('Observable decode, region match', () => {
     const url = ("/regions/us-east1/observablehq.com/@tomlarkworthy/echo-server")
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server",
-        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server",
         "path": "/",
         "notebook":"echo-server",
         "name": "default",
         "namespace": "tomlarkworthy"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server');
 });
 
 
 test('Observable decode, versioning', () => {
     const url = ("/observablehq.com/@tomlarkworthy/echo-server@31")
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server@31",
-        "notebookURL": "https://observablehq.com/embed/@tomlarkworthy/echo-server@31",
         "path": "/",
         "notebook":"echo-server",
         "name": "default",
         "version": "31",
         "namespace": "tomlarkworthy"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server@31');
 });
 
 
 test('Observable decode, versioning, link-shared', () => {
     const url = ("/observablehq.com/d/a1df3130b62f47ef@31")
-    expect(observable.decode({
+    const req = {
         url,
         params: params(url)
-    })).toEqual({
+    }
+    expect(observable.decode(req)).toEqual({
         "endpointURL": "/observablehq.com/d/a1df3130b62f47ef@31",
-        "notebookURL": "https://observablehq.com/embed/a1df3130b62f47ef@31",
         "path": "/",
         "notebook":"d/a1df3130b62f47ef",
         "name": "default",
         "version": "31"
-    })
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/a1df3130b62f47ef@31');
+});
+
+test('Observable notebookURL, versioning, link-shared, api-key', () => {
+    const url = ("/observablehq.com/d/a1df3130b62f47ef@31")
+    const req = {
+        hostname: "https://webcode.run",
+        url,
+        params: params(url)
+    }
+    expect(observable.notebookURL(req, {api_key: "key"}))
+        .toEqual('https://webcode.run/observablehq.com/@endpointservices/embed/d/a1df3130b62f47ef@31?api_key=key');
 });
 
 test('canHost', () => {

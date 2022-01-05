@@ -19,3 +19,10 @@ test('parseNS (default)', async () => {
         "deploy": "default",
     })
 });
+
+test('parseNS by id (default)', async () => {
+    expect(parseNS("d|5c57cd3a4fb256d4")).toEqual({
+        "notebook": "d/5c57cd3a4fb256d4",
+        "deploy": "default",
+    })
+});
