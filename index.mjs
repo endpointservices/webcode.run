@@ -214,6 +214,9 @@ app.all(observable.pattern, [
 
                 if (pageResult.headers()['login']) {
                     page.namespace = pageResult.headers()['login'];
+                    if (!billing.isPro(page.namespace)) {
+                        return res.status(402).send(`A PRO subscription is required to use private source code endpoints. Upgrade at https://webcode.run`);
+                    }
                 };
             }
 
