@@ -1,9 +1,9 @@
 let debugFirebase = undefined;
 import * as observable from './observable.mjs';
 
-export const setDebugFirebase = (firebase) => debugFirebase = firebase;
+export const setLivecodeFirebase = (firebase) => debugFirebase = firebase;
 
-export async function debuggerMiddleware(req, res, next) {
+export async function livecodeMiddleware(req, res, next) {
     try {
         if (req.cachedConfig?.debugger?.path) {
             // TODO, this watcher is introducing 70ms of latency, we should really just track the status with the dynamic config

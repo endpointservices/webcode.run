@@ -9,9 +9,10 @@ import * as observable from './observable.mjs';
 import * as useragent from './useragent.mjs';
 import * as configcache from './configcache.mjs';
 import * as browsercache from './browsercache.mjs';
+import * as billing from './billing.mjs';
+import * as livecode from './livecode.mjs';
 import {promiseRecursive} from './utils.mjs';
 import {loopbreak} from './loopbreak.mjs';
-import {debuggerMiddleware, setDebugFirebase} from './debugger.mjs';
 import {Logger} from './logging.mjs';
 import {default as compression} from 'compression';
 import {puppeteerProxy} from './puppeteer.mjs';
@@ -34,7 +35,8 @@ const users = admin.initializeApp({
 }, 'users');
 
 configcache.setCacheFirebase(firebase);
-setDebugFirebase(firebase)
+livecode.setLivecodeFirebase(firebase)
+billing.setBillingFirebase(firebase);
 
 const secretsClient = new SecretManagerServiceClient({
     projectId: "endpointservice"
@@ -109,7 +111,7 @@ app.all(observable.pattern, [
         }
         next()
     },
-    debuggerMiddleware,
+    livecode.livecodeMiddleware,
     async (req, res, next) => { 
         let page = null;
         const throwError = (status, message) => {
