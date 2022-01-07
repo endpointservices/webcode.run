@@ -208,6 +208,7 @@ app.all(observable.pattern, [
                 console.log(`Fetching: ${notebookURL}`);
                 const pageResult = await page.goto(notebookURL, { waitUntil: 'domcontentloaded' });
                 if (!pageResult.ok()) {
+                    browsercache.invalidatePage(shard, notebookURL)
                     res.status(pageResult.status()).send(pageResult.statusText());
                     return;
                 }

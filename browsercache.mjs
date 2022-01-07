@@ -117,8 +117,20 @@ export const invalidate = async (namespace, endpointURL) => {
             delete entry.pages[pageURL]
             page.close();
         }
-    })
-    
+    }) 
+}
+
+export const invalidatePage = async (namespace, pageURL) => {
+    const entry = browsers[namespace];
+    if (!entry) return;
+    Object.values(entry.pages).forEach(async (pageEntry) => {
+        const page = await pageEntry.pagePromise;
+        if (page.url() === pageURL && !page.isClosed()) {
+            console.log("Invalidating page", page.url());
+            delete entry.pages[pageURL]
+            page.close();
+        }
+    }) 
 }
 
 export const stats = async () => ({

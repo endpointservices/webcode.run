@@ -83,7 +83,12 @@ test('Can access private team APIs', async () => {
         .expect(200, "cool");
 }, 30000);
 
-
+test('Non-PRO cannot access expose private APIs', async () => {
+    await supertest.default(app)
+        .put('/observablehq.com/d/573498e681a6c3ec')
+        .send('cool')
+        .expect(404);
+}, 30000);
 
 afterAll(async () => {
     await shutdown();
