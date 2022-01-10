@@ -404,7 +404,7 @@ app.use('(/regions/:region)?/.stats', browsercache.statsHandler);
 
 
 app.use((req, res) => {
-    res.redirect(302, "https://observablehq.com/@endpointservices/webcode");
+    res.redirect(302, "https://www.webcode.run");
 });
 
 app.server = app.listen(process.env.PORT || 8080);
