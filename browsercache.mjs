@@ -75,6 +75,7 @@ export async function newPage(shard, args = [], pageURL) {
             console.log("Opening page for", pageURL);
             const browser = await browserEntry.browser;
             const page = await browser.newPage();
+            page.requests = {};
             await page.setRequestInterception(true)
             
             page.on('request', interceptedRequest => {
@@ -106,6 +107,15 @@ export async function shutdown () {
     });
 }
 
+const closePageWhenUnused = (page) => {
+    if (Object.keys(page.requests).length === 0) {
+        page.close();
+    } else {
+        console.log("Waiting for page to be unused");
+        setTimeout(closePageWhenUnused.bind(null, page), 5000);
+    }    
+};
+
 export const invalidate = async (namespace, endpointURL) => {
     const entry = browsers[namespace];
     if (!entry) return;
@@ -114,8 +124,8 @@ export const invalidate = async (namespace, endpointURL) => {
         const pageURL = page.url()
         if (observable.canHost(pageURL, endpointURL) && !page.isClosed()) {
             console.log("Invalidating page", pageURL, "due to", endpointURL);
-            delete entry.pages[pageURL]
-            page.close();
+            delete entry.pages[pageURL];
+            closePageWhenUnused(page);
         }
     }) 
 }
@@ -128,7 +138,7 @@ export const invalidatePage = async (namespace, pageURL) => {
         if (page.url() === pageURL && !page.isClosed()) {
             console.log("Invalidating page", page.url());
             delete entry.pages[pageURL]
-            page.close();
+            closePageWhenUnused(page);
         }
     }) 
 }

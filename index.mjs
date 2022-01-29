@@ -129,7 +129,8 @@ app.all(observable.pattern, [
 
         const notebookURL = observable.notebookURL(req, req.cachedConfig);
         const shard = req.cachedConfig?.namespace || req.requestConfig.namespace || notebookURL;
-        const closePage = async () => {
+        const releasePage = async () => {
+            delete page.requests[req.id];
             if (page && !localmode && !page.isClosed()) {
                 if (!req?.cachedConfig?.reusable) await page.close();
                 page = undefined;
@@ -150,12 +151,13 @@ app.all(observable.pattern, [
             if (!req.cachedConfig || !req.cachedConfig.reusable) {
                 page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888']);
                 // Tidy page on cancelled request
-                req.on('close', closePage);
+                req.on('close', releasePage);
             } else {
                 page = await browsercache.newPage(shard, ['--proxy-server=127.0.0.1:8888'], notebookURL);
                 pageReused = page.setup !== undefined;
                 if (!page.setup) page.setup = true;
             }
+            page.requests[req.id] = true; // indicate we are running a request on this page
 
             if (req.cachedConfig) {
                 await page.setUserAgent(useragent.encode({
@@ -340,7 +342,7 @@ app.all(observable.pattern, [
                 cellReq, req.requestConfig.name, context
             );    
             
-            closePage();
+            releasePage();
 
             const millis = Date.now() - t_start;
             
@@ -372,7 +374,7 @@ app.all(observable.pattern, [
             }
             console.error(err);
 
-            closePage()
+            releasePage()
             const millis = Date.now() - t_start;
 
             logger.log({
@@ -406,7 +408,7 @@ app.use('(/regions/:region)?/.stats', browsercache.statsHandler);
 
 app.use(proxy('https://loving-leakey-0c4e88.netlify.app', {
     userResHeaderDecorator(headers, userReq, userRes, proxyReq, proxyRes) {
-        headers['Cache-Control'] = 'public, max-age=300';
+        headers['Cache-Control'] = 'public, max-age=3600';
         return headers;
     }
 }));
