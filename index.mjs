@@ -19,6 +19,7 @@ import {puppeteerProxy} from './puppeteer.mjs';
 import * as _ from 'lodash-es';
 import createError from "http-errors";
 import {installRtdbRedirect} from './rtdb.mjs';
+import {default as proxy} from 'express-http-proxy';
 
 const firebase = admin.initializeApp({
     apiKey: "AIzaSyD882c8YEgeYpNkX01fhpUDfioWl_ETQyQ",
@@ -403,9 +404,12 @@ app.use('(/regions/:region)?/puppeteer', puppeteerProxy);
 app.use('(/regions/:region)?/.stats', browsercache.statsHandler);
 
 
-app.use((req, res) => {
-    res.redirect(302, "https://www.webcode.run");
-});
+app.use(proxy('https://loving-leakey-0c4e88.netlify.app', {
+    userResHeaderDecorator(headers, userReq, userRes, proxyReq, proxyRes) {
+        headers['Cache-Control'] = 'public, max-age=300';
+        return headers;
+    }
+}));
 
 app.server = app.listen(process.env.PORT || 8080);
     

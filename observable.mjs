@@ -21,6 +21,19 @@ export function decode(req) {
     };
 }
 
+export function parseEndpointURL(endpointURL) {
+    const match = /\/(?<codehost>[^/]*)\/(?:d\/(?<id>[a-z0-9]+)|@(?<namespace>[a-z0-9]+)\/(?<notebook>[a-z0-9-]+))(?:@(?<version>[0-9]+))?(?:;(?<name>[^/]+))?/.exec(endpointURL);
+    if (!match) return undefined;
+    return {
+        codehost: match.groups.codehost,
+        id: match.groups.id,
+        namespace: match.groups.namespace,
+        notebook: match.groups.notebook,
+        ...(match.groups.version && {version: Number.parseInt(match.groups.version)}),
+        name: match.groups.name || 'default',
+    };
+}
+
 export function notebookURL(req, {api_key = undefined} = {}) {
     const versionSuffix = req.params.version ? `@${req.params.version}` : '';
     const local = req.hostname === 'localhost';

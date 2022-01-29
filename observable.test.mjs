@@ -170,6 +170,30 @@ test('canHost', () => {
 
 
 
+test('parseEndpointURL codehost, id, version, name', () => {
+    expect(observable.parseEndpointURL(
+        "/observablehq.com/d/defr4eds@244;ping"
+    )).toEqual({
+        codehost: 'observablehq.com',
+        id: 'defr4eds',
+        version: 244,
+        name: 'ping'
+    });
+});
+
+test('parseEndpointURL codehost, namespace, notebook', () => {
+    expect(observable.parseEndpointURL(
+        "/observablehq.com/@tomlarkworthy/foo"
+    )).toEqual({
+        codehost: 'observablehq.com',
+        namespace: 'tomlarkworthy',
+        notebook: 'foo',
+        name: 'default'
+    });
+});
+
+
+
 /*
 test('Observable decode, with param', () => {
     const url = ("/observablehq.com/@tomlarkworthy/echo-server?foo")
