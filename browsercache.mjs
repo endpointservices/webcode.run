@@ -107,12 +107,12 @@ export async function shutdown () {
     });
 }
 
-const closePageWhenUnused = (page) => {
-    if (Object.keys(page.requests).length === 0) {
+const closePageWhenUnused = (page, attempts = 5) => {
+    if (attempts == 0 || Object.keys(page.requests).length === 0) {
         page.close();
     } else {
         console.log("Waiting for page to be unused");
-        setTimeout(closePageWhenUnused.bind(null, page), 5000);
+        setTimeout(closePageWhenUnused.bind(null, page, attempts - 1), 5000);
     }    
 };
 
