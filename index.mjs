@@ -327,6 +327,9 @@ app.all(observable.pattern, [
             Object.keys(secrets).forEach(
                 secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
 
+            // mixin api_key to secrets
+            secrets.api_key = req.config.api_key;
+
             // Resolve all the promises
             const context = {
                 serverless: true,

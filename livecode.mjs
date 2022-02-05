@@ -30,10 +30,15 @@ export async function livecodeMiddleware(req, res, next) {
                 // ergonomics improvement, strip namespace_ prefix of all secrets
                 Object.keys(secrets).forEach(
                     secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
+
+                // mixin api_key
+                secrets.api_key = req.cachedConfig.api_key;
                 
                 debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id).set({
                     request: cellReq,
                     context: {
+                        serverless: false,
+                        namespace,
                         secrets
                     }
                 });
