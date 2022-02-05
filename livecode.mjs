@@ -32,7 +32,7 @@ export async function livecodeMiddleware(req, res, next) {
                     secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
 
                 // mixin api_key
-                secrets.api_key = req.cachedConfig.api_key;
+                if (req.cachedConfig.api_key) secrets.api_key = req.cachedConfig.api_key;
                 
                 debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id).set({
                     request: cellReq,

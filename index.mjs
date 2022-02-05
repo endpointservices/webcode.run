@@ -328,7 +328,7 @@ app.all(observable.pattern, [
                 secretName => secrets[secretName.replace(`${namespace}_`, '')] = secrets[secretName]);
 
             // mixin api_key to secrets
-            secrets.api_key = req.config.api_key;
+            if (req.config.api_key) secrets.api_key = req.config.api_key;
 
             // Resolve all the promises
             const context = {
