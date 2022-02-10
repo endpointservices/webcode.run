@@ -11,14 +11,18 @@ const CLEANUP_CHECK_PERIOD_HOURS = 2;
 const BROWSER_IDLE_CLEANUP_HOURS = 4;
 
 // Closes browsers that have not been used in a while
-export async function cleanup () {
+export async function cleanup ({all = false} = {}) {
     Object.keys(browsers).forEach(async shard => {
         const entry = browsers[shard];
-        if (Date.now() - entry.lastUsed > 1000 * 60 * 60 * BROWSER_IDLE_CLEANUP_HOURS) {
+        if (all || Date.now() - entry.lastUsed > 1000 * 60 * 60 * BROWSER_IDLE_CLEANUP_HOURS) {
             console.log(`Cleanup browser for ${shard}`);
-            const browser = await entry.browser;
             delete browsers[shard];
-            browser.close();
+            try {
+                const browser = await entry.browser;
+                browser.close();
+            } catch (err) {
+                console.error(err.message);
+            }
         }
     })
 }
@@ -171,6 +175,13 @@ export const stats = async () => ({
     });
 
 export const statsHandler = async (req, res) => {
-    res.json(await stats());
+    try {
+        res.json(await stats());
+    } catch (err) {
+        // Try to recover by killing all browsers and starting again.
+        console.error(err.message);
+        await cleanup({all: true});
+        res.status(500).send(err.message);
+    }
 }
     
