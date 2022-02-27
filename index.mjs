@@ -130,7 +130,7 @@ app.all(observable.pattern, [
         const notebookURL = observable.notebookURL(req, req.cachedConfig);
         const shard = req.cachedConfig?.namespace || req.requestConfig.namespace || notebookURL;
         const releasePage = async () => {
-            delete page.requests[req.id];
+            if (page) delete page.requests[req.id];
             if (page && !localmode && !page.isClosed()) {
                 if (!req?.cachedConfig?.reusable) await page.close();
                 page = undefined;
