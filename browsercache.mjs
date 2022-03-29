@@ -157,12 +157,22 @@ export const stats = async () => ({
                 const browser = await entry.browser;
                 try {
                     const pages = await browser.pages();
+
+                    const pageStats = async (page) => ({
+                        title: await page.title(),
+                        url: page.url(),
+                        metrics: await page.metrics(),
+                    })
+
                     return [namespace, {
-                        pages: await promiseRecursive((pages).map(async (page) => ({
-                            title: await page.title(),
-                            url: page.url(),
-                            metrics: await page.metrics(),
-                        })))
+                        pages: await promiseRecursive((pages).map((page) => {
+                            return timeout(pageStats(page), 5000).catch(err => {
+                                // Timeout
+                                console.error(page.url(), err);
+                                console.log("Error duing page stats, so killing page");
+                                invalidatePage(namespace, page.url())
+                            });
+                        }))
                     }];
                 } catch (err) {
                     console.error(err);
@@ -174,6 +184,9 @@ export const stats = async () => ({
         }
     });
 
+const timeout = (prom, time_ms) =>
+	Promise.race([prom, new Promise((_r, rej) => setTimeout(rej, time_ms))]);
+    
 export const statsHandler = async (req, res) => {
     try {
         res.json(await stats());
