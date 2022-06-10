@@ -5,13 +5,17 @@ export const setLivecodeFirebase = (firebase) => debugFirebase = firebase;
 
 export async function livecodeMiddleware(req, res, next) {
     try {
-        if (req.cachedConfig?.debugger?.path) {
+        // Priority given to anonymous paths
+        const tunnelPath = req.requestConfig.correlation 
+            ? `/services/http/debug/${req.requestConfig.correlation}`
+            : req.cachedConfig?.debugger?.path
+        if (tunnelPath) {
             // TODO, this watcher is introducing 70ms of latency, we should really just track the status with the dynamic config
-            const status = await debugFirebase.database().ref(req.cachedConfig.debugger.path + "/status").once('value');
-            if (status.val() === 'online') {
+            const status = await debugFirebase.database().ref(tunnelPath + "/status").once('value');
+            if (/* old way */ status.val() === 'online' || /* new way */ status.val()?.state === 'online') {
                 // todo unsubscribe when status leaves offline
                 
-                console.log("Tunneling request over", req.cachedConfig.debugger.path)
+                console.log("Tunneling request over", tunnelPath)
                 const cellReq = observable.createCellRequest(req);
                 const id = req.id;
     
@@ -34,7 +38,7 @@ export async function livecodeMiddleware(req, res, next) {
                 // mixin api_key
                 if (req.cachedConfig.api_key) secrets.api_key = req.cachedConfig.api_key;
                 
-                debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id).set({
+                debugFirebase.database().ref(tunnelPath + "/requests/" + id).set({
                     request: cellReq,
                     context: {
                         serverless: false,
@@ -43,16 +47,16 @@ export async function livecodeMiddleware(req, res, next) {
                     }
                 });
     
-                debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id + "/headers").on('child_added', snap => {
+                debugFirebase.database().ref(tunnelPath + "/requests/" + id + "/headers").on('child_added', snap => {
                     res.header(snap.key, snap.val())
                 });
     
-                debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id + "/status").on('value', snap => {
+                debugFirebase.database().ref(tunnelPath + "/requests/" + id + "/status").on('value', snap => {
                     if (snap.val() === null) return; // ignore first null result
                     res.status(snap.val())
                 });
     
-                debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id + "/writes").on('child_added', snap => {
+                debugFirebase.database().ref(tunnelPath + "/requests/" + id + "/writes").on('child_added', snap => {
                     const chunk = snap.val();
                     if (chunk.ARuRQygChDsaTvPRztEb === "bufferBase64") {
                         chunk = Buffer.from(chunk.value, 'base64')
@@ -60,7 +64,7 @@ export async function livecodeMiddleware(req, res, next) {
                     res.write(chunk);
                 });
     
-                debugFirebase.database().ref(req.cachedConfig.debugger.path + "/requests/" + id + "/response").on('value', snap => {
+                debugFirebase.database().ref(tunnelPath + "/requests/" + id + "/response").on('value', snap => {
                     if (snap.val() === null) return; // ignore first null result
                     const result = JSON.parse(snap.val());
     

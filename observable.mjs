@@ -1,5 +1,5 @@
 
-export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/:notebook))(@(:version))?((;|%3B)(:name))?(/:path(*))?';
+export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/:notebook))(@(:version))?((;|%3B)(:name([^;/]+)))?((;|%3B)(:correlation([^;/]+)))?(/:path(*))?';
 export function decode(req) {
     const notebook = req.params.id ? `d/${req.params.id}` : req.params.notebook
     let userURL = "/" + (req.params.path || '');
@@ -16,19 +16,21 @@ export function decode(req) {
         path: userURL,
         name: name,
         endpointURL,
+        ...(req.params.correlation && {correlation: req.params.correlation}),
         ...(req.params.owner && {namespace: req.params.owner}),
         ...(req.params.version && {version: req.params.version})
     };
 }
 
 export function parseEndpointURL(endpointURL) {
-    const match = /\/(?<codehost>[^/]*)\/(?:d\/(?<id>[a-z0-9]+)|@(?<namespace>[a-z0-9]+)\/(?<notebook>[a-z0-9-]+))(?:@(?<version>[0-9]+))?(?:;(?<name>[^/]+))?/.exec(endpointURL);
+    const match = /\/(?<codehost>[^/]*)\/(?:d\/(?<id>[a-z0-9]+)|@(?<namespace>[a-z0-9]+)\/(?<notebook>[a-z0-9-]+))(?:@(?<version>[0-9]+))?(?:;(?<name>[^;/]+))?(?:;(?<correlation>[^;/]+))?/.exec(endpointURL);
     if (!match) return undefined;
     return {
         codehost: match.groups.codehost,
         id: match.groups.id,
         namespace: match.groups.namespace,
         notebook: match.groups.notebook,
+        ...(match.groups.correlation && {correlation: match.groups.correlation}),
         ...(match.groups.version && {version: Number.parseInt(match.groups.version)}),
         name: match.groups.name || 'default',
     };

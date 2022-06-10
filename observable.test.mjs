@@ -1,5 +1,5 @@
 import * as observable from './observable.mjs';
-import {default as pathToRegexp} from 'path-to-regexp'
+import {default as pathToRegexp} from 'path-to-regexp';
 const keys = [];
 const regexp = pathToRegexp(observable.pattern, keys)
 console.log(regexp);
@@ -63,7 +63,6 @@ test('Observable decode, named cell, no path', () => {
     });
     expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server');
 });
-
 
 
 test('Observable decode, named cell, with path', () => {
@@ -134,6 +133,25 @@ test('Observable decode, versioning', () => {
 });
 
 
+test('Observable version, correlation', () => {
+    const url = ("/observablehq.com/@tomlarkworthy/echo-server@31;default;4dcE")
+    const req = {
+        url,
+        params: params(url)
+    }
+    expect(observable.decode(req)).toEqual({
+        "endpointURL": "/observablehq.com/@tomlarkworthy/echo-server@31;default",
+        "path": "/",
+        "notebook":"echo-server",
+        "name": "default",
+        "version": "31",
+        "correlation": "4dcE",
+        "namespace": "tomlarkworthy"
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@tomlarkworthy/echo-server@31');
+});
+
+
 test('Observable decode, versioning, link-shared', () => {
     const url = ("/observablehq.com/d/a1df3130b62f47ef@31")
     const req = {
@@ -189,6 +207,18 @@ test('parseEndpointURL codehost, namespace, notebook', () => {
         namespace: 'tomlarkworthy',
         notebook: 'foo',
         name: 'default'
+    });
+});
+
+test('parseEndpointURL correlation', () => {
+    expect(observable.parseEndpointURL(
+        "/observablehq.com/@tomlarkworthy/foo;default;abcd"
+    )).toEqual({
+        codehost: 'observablehq.com',
+        namespace: 'tomlarkworthy',
+        notebook: 'foo',
+        name: 'default',
+        correlation: 'abcd'
     });
 });
 

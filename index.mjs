@@ -372,6 +372,10 @@ app.all(observable.pattern, [
             if (err.message.startsWith("waiting for function failed")) {
                 err.message = `Deployment '${req.requestConfig.name}' not found, did you remember to publish your notebook, or is your deploy function slow?`
                 err.status = 404;
+            } else if (err.message.endsWith("Most likely the page has been closed.")) {
+                err.message = "Stale cache, should not happen"
+                err.status = 500;
+                browsercache.invalidatePage(shard, notebookURL)
             } else if (!err.status) {
                 err.status = err.status || 500; // Default to 500 error code
             }
