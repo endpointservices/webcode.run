@@ -133,7 +133,7 @@ test('Observable decode, versioning', () => {
 });
 
 
-test('Observable version, correlation', () => {
+test('Observable decode version, correlation', () => {
     const url = ("/observablehq.com/@tomlarkworthy/echo-server@31;default;4dcE")
     const req = {
         url,
@@ -167,6 +167,24 @@ test('Observable decode, versioning, link-shared', () => {
     });
     expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/a1df3130b62f47ef@31');
 });
+
+test('Observable decode, versioning, suffix', () => {
+    const url = ("/observablehq.com/@n/name/10@31")
+    const req = {
+        url,
+        params: params(url)
+    }
+    expect(observable.decode(req)).toEqual({
+        "endpointURL": "/observablehq.com/@n/name/10@31",
+        "path": "/",
+        "notebook":"name/10",
+        "name": "default",
+        "version": "31",
+        "namespace": "n"
+    });
+    expect(observable.notebookURL(req)).toEqual('https://observablehq.com/embed/@n/name/10@31');
+});
+
 
 test('Observable notebookURL, versioning, link-shared, api-key', () => {
     const url = ("/observablehq.com/d/a1df3130b62f47ef@31")

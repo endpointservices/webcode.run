@@ -1,6 +1,7 @@
 
-export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/:notebook))(@(:version))?((;|%3B)(:name([^;/]+)))?((;|%3B)(:correlation([^;/]+)))?(/:path(*))?';
+export const pattern = '(/regions/:region)?/observablehq.com((/d/:id)|(/@:owner/(:notebook)(/:suffix(\\d+))?))(@(:version))?((;|%3B)(:name([^;/]+)))?((;|%3B)(:correlation([^;/]+)))?(/:path(*))?';
 export function decode(req) {
+    if (req.params.suffix) req.params.notebook = `${req.params.notebook}/${req.params.suffix}`;
     const notebook = req.params.id ? `d/${req.params.id}` : req.params.notebook
     let userURL = "/" + (req.params.path || '');
     const name = req.params.name || 'default';

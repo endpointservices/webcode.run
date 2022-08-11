@@ -6,6 +6,7 @@
   "main": "index.mjs",
   "scripts": {
     "start": "node index.mjs",
+    "develop_full": "export set LOCAL=true; tinyproxy -dc ./tinyproxy.conf & forever --watch index.mjs",
     "develop": "tinyproxy -dc ./tinyproxy.conf & forever --watch index.mjs",
     "submit": "gcloud builds submit --tag eu.gcr.io/endpointservice/serversidecells:$TAG --project endpointservice",
     "test": "tinyproxy -dc ./tinyproxy.conf & NODE_OPTIONS=--experimental-vm-modules node_modules/.bin/jest --config=jest.config.js",
