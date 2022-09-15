@@ -6,8 +6,7 @@ Allows Observablehq.com to be used to write backend code. Secrets and logs suppo
 
 Join the discussion on https://talk.observablehq.com/t/serverless-cells/4491/1
 
-Distributed under a source-available PolyForm Perimeter license. To summarize: you cannot use this
-software in competing commercial products or services, but you can, for instance, fork, modify, and self-host this code.
+Distributed under MIT license.
 
 ### Image on dockerhub
 
